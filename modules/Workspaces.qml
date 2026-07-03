@@ -104,7 +104,7 @@ Item {
             id: occLayer
             anchors.fill: parent
             layer.enabled: true
-            opacity: 0.13
+            opacity: 0.17
 
             Repeater {
                 model: root.count
@@ -118,8 +118,11 @@ Item {
                     x: index * root.cellW - (prevOcc ? 1 : 0)
                     width: root.cellW + (prevOcc ? 1 : 0) + (nextOcc ? 1 : 0)
                     height: root.cellH
-                    color: "#dde4ec"
-                    opacity: isOcc ? 1 : 0
+                    // «Тлеющий след»: цвет = температура (время фокуса),
+                    // плотность = число окон (1 окно — бледнее, 4+ — максимум)
+                    color: root.heatColor(WsUsage.intensity(index + 1))
+                    opacity: isOcc ? (0.7 + 0.3 * Math.min(root.winCounts[index + 1] ?? 0, 4) / 4) : 0
+                    Behavior on color { ColorAnimation { duration: 600 } }
 
                     readonly property real r: height / 2
                     topLeftRadius:     prevOcc ? 0 : r
