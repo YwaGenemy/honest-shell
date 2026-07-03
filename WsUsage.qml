@@ -12,10 +12,11 @@ Singleton {
     PersistentProperties {
         id: store
         reloadableId: "wsUsageHeat"
-        property var heat: ({})
+        // JS-объекты не переживают пересоздание движка при reload — храним строкой
+        property string heatJson: "{}"
     }
 
-    readonly property var heat: store.heat
+    readonly property var heat: JSON.parse(store.heatJson)
 
     // Сколько тиков = «раскалён»: 360 тиков ≈ 30 мин чистого фокуса
     readonly property real fullScale: 360
@@ -24,19 +25,20 @@ Singleton {
         interval: 5000; running: true; repeat: true
         onTriggered: {
             const h = {};
-            for (const k in store.heat) {
-                const v = store.heat[k] * 0.999;     // полураспад ≈ 58 мин
+            const old = root.heat;
+            for (const k in old) {
+                const v = old[k] * 0.999;            // полураспад ≈ 58 мин
                 if (v > 0.05) h[k] = v;
             }
             const cur = Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 0;
             if (cur > 0) h[cur] = (h[cur] ?? 0) + 1;
-            store.heat = h;
+            store.heatJson = JSON.stringify(h);
         }
     }
 
     // 0..1 с извлечением корня: быстрый видимый старт, плавное насыщение.
     // ~2 мин фокуса → 0.25 (полоска уже читается), ~8 мин → 0.5, ~30 мин → 1.0
     function intensity(id) {
-        return Math.sqrt(Math.min(1, (store.heat[id] ?? 0) / fullScale));
+        return Math.sqrt(Math.min(1, (heat?.[id] ?? 0) / fullScale));
     }
 }
