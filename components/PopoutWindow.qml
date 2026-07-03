@@ -226,25 +226,59 @@ PopupWindow {
         }
     }
 
+    // Строка «метка : значение»
+    component InfoRow: RowLayout {
+        property string k
+        property string v
+        property color vc: Theme.text
+        Layout.fillWidth: true
+        spacing: 8
+        Text { text: k; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
+        Item { Layout.fillWidth: true }
+        Text { text: v; color: vc; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1
+               font.bold: true; horizontalAlignment: Text.AlignRight }
+    }
+
     // ── CPU ──
     Component {
         id: cpuC
         ColumnLayout {
-            property string la: "…"
-            property string cores: ""
-            spacing: 6
-            implicitWidth: 205
+            spacing: 7
+            implicitWidth: 250
 
-            Process { id: laP; command: ["cat", "/proc/loadavg"]
-                stdout: StdioCollector { onStreamFinished: la = ("" + text).trim().split(" ").slice(0, 3).join("  ·  ") } }
-            Process { id: ncP; command: ["nproc"]
-                stdout: StdioCollector { onStreamFinished: cores = ("" + text).trim() } }
-            Timer { interval: 2000; running: true; repeat: true; triggeredOnStart: true
-                onTriggered: { laP.running = true; if (cores === "") ncP.running = true } }
+            Text { text: SysInfo.cpuModel; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
 
-            Text { text: "Процессор"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize; font.bold: true }
-            Text { text: "Load: " + la; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
-            Text { text: "Ядер: " + (cores || "…"); color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
+            // Сетка мини-баров по потокам
+            GridLayout {
+                Layout.fillWidth: true
+                columns: 8
+                rowSpacing: 3
+                columnSpacing: 3
+                Repeater {
+                    model: SysInfo.cpuPerCore
+                    delegate: Rectangle {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        implicitHeight: 16
+                        radius: 3
+                        color: Qt.rgba(221/255, 228/255, 236/255, 0.08)
+                        Rectangle {
+                            anchors.bottom: parent.bottom
+                            width: parent.width
+                            height: parent.height * Math.min(1, parent.modelData / 100)
+                            radius: 3
+                            color: parent.modelData >= 85 ? Theme.warning : Theme.accent
+                            Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
+                        }
+                    }
+                }
+            }
+
+            InfoRow { k: "Загрузка"; v: SysInfo.cpuUsage + "%"; vc: SysInfo.cpuUsage >= 85 ? Theme.warning : Theme.text }
+            InfoRow { k: "Ядра / потоки"; v: SysInfo.cpuCores + " / " + SysInfo.cpuThreads }
+            InfoRow { k: "Частота"; v: (SysInfo.cpuFreq / 1000).toFixed(2) + " ГГц" }
+            InfoRow { k: "Температура"; v: SysInfo.cpuTemp + " °C"; vc: SysInfo.cpuTemp >= 80 ? Theme.critical : SysInfo.cpuTemp >= 65 ? Theme.warning : Theme.text }
+            InfoRow { k: "Load avg"; v: SysInfo.loadAvg }
         }
     }
 
@@ -252,21 +286,38 @@ PopupWindow {
     Component {
         id: gpuC
         ColumnLayout {
-            property int temp: 0
-            property int busy: 0
-            spacing: 6
-            implicitWidth: 205
+            spacing: 7
+            implicitWidth: 235
+            readonly property real vramFrac: SysInfo.gpuVramTotal > 0 ? SysInfo.gpuVramUsed / SysInfo.gpuVramTotal : 0
 
-            Process { id: tP; command: ["sh", "-c", "cat /sys/devices/pci0000:00/0000:00:08.1/0000:03:00.0/hwmon/hwmon*/temp1_input"]
-                stdout: StdioCollector { onStreamFinished: { const v = parseInt(("" + text).trim()); if (!isNaN(v)) temp = Math.round(v / 1000) } } }
-            Process { id: bP; command: ["sh", "-c", "cat /sys/devices/pci0000:00/0000:00:08.1/0000:03:00.0/gpu_busy_percent 2>/dev/null || echo -1"]
-                stdout: StdioCollector { onStreamFinished: { const v = parseInt(("" + text).trim()); if (!isNaN(v)) busy = v } } }
-            Timer { interval: 2000; running: true; repeat: true; triggeredOnStart: true
-                onTriggered: { tP.running = true; bP.running = true } }
+            Text { text: "Radeon (5700U)"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize; font.bold: true }
 
-            Text { text: "Видеокарта (amdgpu)"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize; font.bold: true }
-            Text { text: "Температура: " + temp + "°C"; color: temp >= 70 ? Theme.warning : Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
-            Text { visible: busy >= 0; text: "Загрузка: " + busy + "%"; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
+            // Полоса загрузки GPU
+            Item {
+                Layout.fillWidth: true; height: 6
+                Rectangle { anchors.fill: parent; radius: 3; color: Qt.rgba(221/255, 228/255, 236/255, 0.1) }
+                Rectangle {
+                    width: parent.width * Math.min(1, SysInfo.gpuBusy / 100); height: parent.height; radius: 3
+                    color: Theme.accent
+                    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
+                }
+            }
+            InfoRow { k: "Загрузка"; v: SysInfo.gpuBusy + "%" }
+            InfoRow { k: "Температура"; v: SysInfo.gpuTemp + " °C"; vc: SysInfo.gpuTemp >= 85 ? Theme.critical : SysInfo.gpuTemp >= 70 ? Theme.warning : Theme.text }
+            InfoRow { k: "Частота"; v: Math.round(SysInfo.gpuFreq) + " МГц" }
+
+            // VRAM полоса
+            InfoRow { k: "VRAM"; v: Math.round(SysInfo.gpuVramUsed) + " / " + Math.round(SysInfo.gpuVramTotal) + " МБ" }
+            Item {
+                Layout.fillWidth: true; height: 5
+                Rectangle { anchors.fill: parent; radius: 2.5; color: Qt.rgba(221/255, 228/255, 236/255, 0.1) }
+                Rectangle {
+                    width: parent.width * Math.min(1, parent.parent.vramFrac); height: parent.height; radius: 2.5
+                    color: parent.parent.vramFrac >= 0.9 ? Theme.warning : Theme.layout
+                    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
+                }
+            }
+            InfoRow { k: "Напряжение"; v: SysInfo.gpuVolt.toFixed(3) + " В" }
         }
     }
 
@@ -276,18 +327,20 @@ PopupWindow {
         ColumnLayout {
             property string iface: "…"
             property string totals: "…"
-            spacing: 6
-            implicitWidth: 230
+            spacing: 7
+            implicitWidth: 235
 
-            Process { id: iP; command: ["sh", "-c", "ip -o -4 route get 1.1.1.1 2>/dev/null | awk '{print $5\"  ·  \"$7}'"]
+            Process { id: iP; command: ["sh", "-c", "ip -o -4 route get 1.1.1.1 2>/dev/null | awk '{print $5\" \"$7}'"]
                 stdout: StdioCollector { onStreamFinished: iface = ("" + text).trim() || "нет соединения" } }
-            Process { id: tP2; command: ["sh", "-c", "awk -F'[: ]+' 'NR>2 && $2!=\"lo\" {rx+=$3; tx+=$11} END {printf \"%.1f GB  ↑ %.1f GB\", rx/1073741824, tx/1073741824}' /proc/net/dev"]
+            Process { id: tP2; command: ["sh", "-c", "awk -F'[: ]+' 'NR>2 && $2!=\"lo\" {rx+=$3; tx+=$11} END {printf \"%.1f|%.1f\", rx/1073741824, tx/1073741824}' /proc/net/dev"]
                 stdout: StdioCollector { onStreamFinished: totals = ("" + text).trim() } }
             Component.onCompleted: { iP.running = true; tP2.running = true }
 
             Text { text: "Сеть"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize; font.bold: true }
-            Text { text: iface; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
-            Text { text: "С загрузки: ↓ " + totals; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
+            InfoRow { k: "Интерфейс"; v: (iface + " ").split(" ")[0] }
+            InfoRow { k: "IP"; v: (iface + "  ").split(" ")[1] || "—" }
+            InfoRow { k: "Принято"; v: (totals.split("|")[0] || "0") + " ГБ" }
+            InfoRow { k: "Отдано"; v: (totals.split("|")[1] || "0") + " ГБ" }
         }
     }
 
