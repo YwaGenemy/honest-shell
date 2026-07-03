@@ -168,24 +168,37 @@ Item {
                 required property int index
                 readonly property int wsId: index + 1
                 readonly property bool isActive: root.current === wsId
-                // Корень — быстрый видимый старт (2 мин фокуса уже заметны)
-                readonly property real heat: Math.sqrt(Math.min(1, (WsUsage.heat[wsId] ?? 0) / WsUsage.fullScale))
+                // Корень — быстрый видимый старт (2 мин фокуса уже заметны).
+                // heat?.[…] — на первом кадре reload хранилище ещё не восстановлено.
+                readonly property real heat: Math.sqrt(Math.min(1, (WsUsage.heat?.[wsId] ?? 0) / WsUsage.fullScale))
 
                 x: index * root.cellW
                 width: root.cellW; height: root.cellH
 
                 // «Тлеющий след»: полоска важности под цифрой. Растёт и теплеет
                 // с временем фокуса, видна и на активной ячейке (рисуется поверх пилюли).
+                // Появление — «разжигание»: растягивается из центра с мягким перелётом + fade.
                 Rectangle {
+                    id: heatBar
+                    readonly property bool lit: cell.heat > 0.02
+
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.bottom: parent.bottom
                     anchors.bottomMargin: 2
-                    visible: cell.heat > 0.02
                     width: 6 + 10 * cell.heat
                     height: 2.5
                     radius: 1.25
                     color: root.heatColor(0.25 + 0.75 * cell.heat)   // от голубого сразу, к янтарю
-                    opacity: 0.7 + 0.3 * cell.heat
+
+                    opacity: lit ? 0.7 + 0.3 * cell.heat : 0
+                    visible: opacity > 0.01
+                    transform: Scale {
+                        origin.x: heatBar.width / 2
+                        xScale: heatBar.lit ? 1 : 0.15
+                        Behavior on xScale { NumberAnimation { duration: Theme.spatialDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
+                    }
+
+                    Behavior on opacity { NumberAnimation { duration: 320; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
                     Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
                     Behavior on color { ColorAnimation { duration: 600 } }
                 }
