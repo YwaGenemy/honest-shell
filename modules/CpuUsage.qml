@@ -12,12 +12,7 @@ Pill {
     property real _prevIdle: 0
     tooltip: "CPU: " + usage + "%"
 
-    Text {
-        text: String.fromCodePoint(0xF0EFB)   // nf-md-cpu-64-bit
-        color: Theme.accent
-        font.family: Theme.font
-        font.pixelSize: Theme.iconSize
-    }
+    Icon { name: "cpu"; color: root.usage >= 85 ? Theme.warning : Theme.muted }
     Text {
         text: root.usage + "%"
         color: root.usage >= 85 ? Theme.warning : Theme.text

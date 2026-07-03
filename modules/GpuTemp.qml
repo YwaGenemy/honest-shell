@@ -11,13 +11,7 @@ Pill {
     property int temp: 0
     tooltip: "GPU: " + temp + "°C"
 
-    Text {
-        text: String.fromCodePoint(0xF050F)   // nf-md-thermometer
-        color: root.temp >= 85 ? Theme.critical : (root.temp >= 70 ? Theme.warning : Theme.accent)
-        font.family: Theme.font
-        font.pixelSize: Theme.iconSize
-        Behavior on color { ColorAnimation { duration: Theme.med } }
-    }
+    Icon { name: "thermo"; color: root.temp >= 85 ? Theme.critical : (root.temp >= 70 ? Theme.warning : Theme.muted) }
     Text {
         text: root.temp + "°"
         color: root.temp >= 85 ? Theme.critical : Theme.text

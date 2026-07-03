@@ -14,12 +14,7 @@ Pill {
 
     onClicked: Hyprland.dispatch("switchxkblayout " + kb + " next")
 
-    Text {
-        text: String.fromCodePoint(0xF030C)   // nf-md-keyboard
-        color: Theme.layout
-        font.family: Theme.font
-        font.pixelSize: Theme.iconSize
-    }
+    Icon { name: "keyboard"; color: Theme.layout }
     Text {
         text: root.isRu ? "RU" : "EN"
         color: Theme.text

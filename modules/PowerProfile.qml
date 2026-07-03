@@ -20,20 +20,10 @@ Pill {
     // Сегмент eco
     RowLayout {
         spacing: 6
-        Text {
-            text: "󰾆"                    // leaf / eco
-            color: root.isPerf ? Theme.muted : Theme.battery
-            font.family: Theme.font; font.pixelSize: Theme.iconSize
-            Behavior on color { ColorAnimation { duration: Theme.med } }
-        }
+        Icon { name: "leaf"; color: root.isPerf ? Theme.muted : Theme.battery }
         // Разделитель
         Rectangle { width: 1; Layout.preferredHeight: 14; color: Theme.border }
-        Text {
-            text: "󰓅"                    // speed / performance
-            color: root.isPerf ? Theme.accent : Theme.muted
-            font.family: Theme.font; font.pixelSize: Theme.iconSize
-            Behavior on color { ColorAnimation { duration: Theme.med } }
-        }
+        Icon { name: "bolt"; color: root.isPerf ? Theme.accent : Theme.muted }
     }
 
     // — D-Bus чтение —

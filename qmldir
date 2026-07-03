@@ -2,4 +2,5 @@
 # на которые ссылаются из других файлов, тоже перечисляем здесь.
 singleton Theme Theme.qml
 singleton WsUsage WsUsage.qml
+singleton Icons Icons.qml
 Bar Bar.qml

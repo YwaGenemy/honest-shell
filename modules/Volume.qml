@@ -26,12 +26,10 @@ Pill {
         sink.audio.volume = Math.max(0, Math.min(1, sink.audio.volume + (d > 0 ? step : -step)))
     }
 
-    Text {
-        text: root.muted ? "󰝟" : (root.vol === 0 ? "󰝟" : (root.vol < 34 ? "󰕿" : (root.vol < 67 ? "󰖀" : "󰕾")))
+    Icon {
+        name: root.muted || root.vol === 0 ? "volumeMute"
+            : (root.vol < 34 ? "volumeLow" : (root.vol < 67 ? "volumeMid" : "volumeHigh"))
         color: root.muted ? Theme.muted : Theme.sound
-        font.family: Theme.font
-        font.pixelSize: Theme.iconSize
-        Behavior on color { ColorAnimation { duration: Theme.med } }
     }
     Text {
         text: root.muted ? "off" : (root.vol + "%")

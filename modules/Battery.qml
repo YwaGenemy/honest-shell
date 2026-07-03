@@ -17,20 +17,33 @@ Pill {
     tooltip: (charging ? "Зарядка — " : "Батарея — ") + pct + "%"
     accentColor: crit ? Theme.critical : (warn ? Theme.warning : Theme.battery)
 
-    // Иконки уровней заряда (nf-md-battery_*)
-    function levelGlyph() {
-        if (charging) return "󰂄"
-        const buckets = ["󰂎","󰁺","󰁻","󰁼","󰁽","󰁾","󰁿","󰂀","󰂁","󰂂","󰁹"]
-        return buckets[Math.min(10, Math.floor(pct / 10))]
-    }
+    readonly property color batColor: crit ? Theme.critical : (warn ? Theme.warning : Theme.battery)
 
-    Text {
+    // Корпус батареи + динамическая заливка уровнем + молния при зарядке
+    Item {
         id: icon
-        text: root.levelGlyph()
-        color: root.crit ? Theme.critical : (root.warn ? Theme.warning : Theme.battery)
-        font.family: Theme.font
-        font.pixelSize: Theme.iconSize
-        Behavior on color { ColorAnimation { duration: Theme.med } }
+        width: Theme.iconSize; height: Theme.iconSize
+
+        Icon { name: "battery"; color: root.batColor }
+        // Заливка: координаты корпуса (viewBox 1.5,5→12.5,11) в пикселях иконки
+        Rectangle {
+            readonly property real s: Theme.iconSize / 16
+            x: 3.2 * s; y: 6.7 * s
+            height: 2.6 * s
+            width: Math.max(0, (9.6 * s) * root.pct / 100)
+            radius: 1
+            color: root.batColor
+            visible: !root.charging
+            Behavior on width { NumberAnimation { duration: Theme.med } }
+        }
+        Icon {
+            name: "bolt"; color: root.batColor
+            visible: root.charging
+            width: Theme.iconSize * 0.62; height: Theme.iconSize * 0.62
+            anchors.centerIn: parent
+            anchors.horizontalCenterOffset: -Theme.iconSize * 0.06
+            thickness: 2.2
+        }
 
         // Пульсация при критическом уровне
         SequentialAnimation on opacity {
