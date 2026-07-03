@@ -118,8 +118,10 @@ Item {
                     x: index * root.cellW - (prevOcc ? 1 : 0)
                     width: root.cellW + (prevOcc ? 1 : 0) + (nextOcc ? 1 : 0)
                     height: root.cellH
+                    // Капсула нейтральная: занятость + плотность по числу окон.
+                    // Жар показывает отдельная полоска под цифрой (слой 3).
                     color: "#dde4ec"
-                    opacity: isOcc ? 1 : 0
+                    opacity: isOcc ? (0.7 + 0.3 * Math.min(root.winCounts[index + 1] ?? 0, 4) / 4) : 0
 
                     readonly property real r: height / 2
                     topLeftRadius:     prevOcc ? 0 : r
@@ -166,9 +168,26 @@ Item {
                 required property int index
                 readonly property int wsId: index + 1
                 readonly property bool isActive: root.current === wsId
+                readonly property real heat: Math.min(1, (WsUsage.heat[wsId] ?? 0) / WsUsage.fullScale)
 
                 x: index * root.cellW
                 width: root.cellW; height: root.cellH
+
+                // «Тлеющий след»: полоска важности под цифрой. Растёт и теплеет
+                // с временем фокуса, видна и на активной ячейке (рисуется поверх пилюли).
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 2
+                    visible: cell.heat > 0.03
+                    width: 5 + 11 * cell.heat
+                    height: 2.5
+                    radius: 1.25
+                    color: root.heatColor(0.25 + 0.75 * cell.heat)   // от голубого сразу, к янтарю
+                    opacity: 0.6 + 0.4 * cell.heat
+                    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
+                    Behavior on color { ColorAnimation { duration: 600 } }
+                }
 
                 Text {
                     anchors.centerIn: parent
