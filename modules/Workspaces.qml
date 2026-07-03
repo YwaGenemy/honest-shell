@@ -168,7 +168,8 @@ Item {
                 required property int index
                 readonly property int wsId: index + 1
                 readonly property bool isActive: root.current === wsId
-                readonly property real heat: Math.min(1, (WsUsage.heat[wsId] ?? 0) / WsUsage.fullScale)
+                // Корень — быстрый видимый старт (2 мин фокуса уже заметны)
+                readonly property real heat: Math.sqrt(Math.min(1, (WsUsage.heat[wsId] ?? 0) / WsUsage.fullScale))
 
                 x: index * root.cellW
                 width: root.cellW; height: root.cellH
@@ -179,12 +180,12 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.bottom: parent.bottom
                     anchors.bottomMargin: 2
-                    visible: cell.heat > 0.03
-                    width: 5 + 11 * cell.heat
+                    visible: cell.heat > 0.02
+                    width: 6 + 10 * cell.heat
                     height: 2.5
                     radius: 1.25
                     color: root.heatColor(0.25 + 0.75 * cell.heat)   // от голубого сразу, к янтарю
-                    opacity: 0.6 + 0.4 * cell.heat
+                    opacity: 0.7 + 0.3 * cell.heat
                     Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
                     Behavior on color { ColorAnimation { duration: 600 } }
                 }
