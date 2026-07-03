@@ -32,6 +32,17 @@ Item {
         return Math.max(m, current);
     }
 
+    // Quickshell сам не перечитывает список воркспейсов и счётчики окон —
+    // без этого «тихое» создание окна на 5+ не появляется на панели.
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            if (["openwindow", "closewindow", "movewindow", "createworkspace",
+                 "destroyworkspace", "workspace"].includes(event.name))
+                Hyprland.refreshWorkspaces()
+        }
+    }
+
     implicitWidth: bg.implicitWidth
     implicitHeight: Theme.pillHeight
 
