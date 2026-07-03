@@ -39,11 +39,15 @@ PopupWindow {
             if (Popouts.name !== win.shownName) swapAnim.restart()
         }
     }
+    // Порядок морфа: погасить старый контент → карточка ПУСТОЙ доезжает и меняет
+    // размер → новый контент проявляется уже на финальном месте. Если проявлять
+    // во время движения, выглядит как «спавн мимо + доравнивание».
     SequentialAnimation {
         id: swapAnim
         NumberAnimation { target: cload; property: "opacity"; to: 0; duration: 70; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects }
         ScriptAction { script: win.shownName = Popouts.name }
-        NumberAnimation { target: cload; property: "opacity"; to: 1; duration: 130; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects }
+        PauseAnimation { duration: Theme.decelDur - 60 }   // карточка едет пустой
+        NumberAnimation { target: cload; property: "opacity"; to: 1; duration: 140; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects }
     }
 
     // Нарисованная тень
