@@ -9,7 +9,9 @@ import "root:/components"
 Pill {
     id: root
     property int temp: 0
-    tooltip: "GPU: " + temp + "°C"
+    onHoveredChanged: hovered
+        ? Popouts.hoverEnter("gpu", mapToItem(null, width / 2, 0).x)
+        : Popouts.hoverLeave()
 
     Icon { name: "thermo"; color: root.temp >= 85 ? Theme.critical : (root.temp >= 70 ? Theme.warning : Theme.muted) }
     Text {

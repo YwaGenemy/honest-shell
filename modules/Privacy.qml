@@ -11,7 +11,8 @@ Pill {
     property var apps: []
     visible: apps.length > 0
     accentColor: Theme.critical
-    tooltip: "Микрофон используется"
+    hpad: 9
+    tooltip: "Микрофон: " + apps.join(", ")
 
     function parse(out) {
         try {
@@ -38,13 +39,6 @@ Pill {
         }
     }
     Icon { name: "mic"; color: Theme.critical }
-    Text {
-        text: root.apps.join(", ")
-        color: Theme.text
-        font.family: Theme.font; font.pixelSize: Theme.fontSize - 1
-        elide: Text.ElideRight
-        Layout.maximumWidth: 120
-    }
 
     Process {
         id: proc

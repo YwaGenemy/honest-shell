@@ -59,4 +59,7 @@ QtObject {
     readonly property int spatialDur:     520
     readonly property int spatialFastDur: 290
     readonly property int effectsDur:     200
+    // decel: быстрое затухание без перелёта — для морфа попапов и разъезжающихся пилюль
+    readonly property list<real> decel:   [0.05, 0.7, 0.1, 1, 1, 1]
+    readonly property int decelDur:       300
 }

@@ -24,7 +24,9 @@ Item {
         color: powerMa.containsMouse || root.open ? Theme.surfaceHi : Theme.surface
         border.width: 1
         border.color: powerMa.containsMouse || root.open ? Theme.borderHi : Theme.border
-        Behavior on width { NumberAnimation { duration: 340; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
+        // Все анимации разворота — одна кривая и длительность (decel, без перелёта),
+        // чтобы кнопки, ширина пилюли и сдвиг соседей ехали синхронно.
+        Behavior on width { NumberAnimation { duration: Theme.decelDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decel } }
         Behavior on color { ColorAnimation { duration: Theme.med } }
 
         Row {
@@ -38,14 +40,14 @@ Item {
                 width: root.open ? acts.implicitWidth : 0
                 height: Theme.pillHeight
                 clip: true
-                Behavior on width { NumberAnimation { duration: 340; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
+                Behavior on width { NumberAnimation { duration: Theme.decelDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decel } }
 
                 Row {
                     id: acts
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 6
                     opacity: root.open ? 1 : 0
-                    Behavior on opacity { NumberAnimation { duration: 200 } }
+                    Behavior on opacity { NumberAnimation { duration: Theme.decelDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decel } }
 
                     component ActBtn: MouseArea {
                         id: btn
@@ -92,10 +94,12 @@ Item {
                     if (e.button === Qt.RightButton) Quickshell.execDetached(["wlogout"])
                     else root.open = !root.open
                 }
+                // Открыто → крестик «свернуть» (⏻ уже есть среди действий, не дублируем)
                 Icon {
                     anchors.centerIn: parent
-                    name: "power"
-                    color: powerMa.containsMouse || root.open ? Theme.critical : Theme.muted
+                    name: root.open ? "close" : "power"
+                    color: root.open ? Theme.muted
+                         : (powerMa.containsMouse ? Theme.critical : Theme.muted)
                 }
             }
         }

@@ -13,7 +13,9 @@ Pill {
     property real _prevRx: 0
     property real _prevTx: 0
     property real _prevTs: 0
-    tooltip: "Сеть: приём / отдача"
+    onHoveredChanged: hovered
+        ? Popouts.hoverEnter("net", mapToItem(null, width / 2, 0).x)
+        : Popouts.hoverLeave()
 
     function parse(out) {
         let rx = 0, tx = 0

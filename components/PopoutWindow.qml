@@ -5,6 +5,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 import Quickshell.Services.Mpris
@@ -40,9 +41,9 @@ PopupWindow {
     }
     SequentialAnimation {
         id: swapAnim
-        NumberAnimation { target: cload; property: "opacity"; to: 0; duration: 90; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects }
+        NumberAnimation { target: cload; property: "opacity"; to: 0; duration: 70; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects }
         ScriptAction { script: win.shownName = Popouts.name }
-        NumberAnimation { target: cload; property: "opacity"; to: 1; duration: 150; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects }
+        NumberAnimation { target: cload; property: "opacity"; to: 1; duration: 130; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects }
     }
 
     // Нарисованная тень
@@ -68,10 +69,10 @@ PopupWindow {
 
         opacity: Popouts.shown ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
-        // Морф: позиция и размер перетекают
-        Behavior on x      { enabled: Popouts.shown; NumberAnimation { duration: 340; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
-        Behavior on width  { enabled: Popouts.shown; NumberAnimation { duration: 340; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
-        Behavior on height { enabled: Popouts.shown; NumberAnimation { duration: 340; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
+        // Морф: без перелёта (decel) — иначе карточка «доравнивается» после прыжка
+        Behavior on x      { enabled: Popouts.shown; NumberAnimation { duration: Theme.decelDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decel } }
+        Behavior on width  { enabled: Popouts.shown; NumberAnimation { duration: Theme.decelDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decel } }
+        Behavior on height { enabled: Popouts.shown; NumberAnimation { duration: Theme.decelDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decel } }
         transform: Translate {
             y: Popouts.shown ? 0 : -6
             Behavior on y { NumberAnimation { duration: 160; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
@@ -86,7 +87,10 @@ PopupWindow {
             x: card.pad; y: card.pad
             sourceComponent: win.shownName === "volume" ? volumeC
                            : win.shownName === "battery" ? batteryC
-                           : win.shownName === "media" ? mediaC : null
+                           : win.shownName === "media" ? mediaC
+                           : win.shownName === "cpu" ? cpuC
+                           : win.shownName === "gpu" ? gpuC
+                           : win.shownName === "net" ? netC : null
         }
     }
 
@@ -103,25 +107,25 @@ PopupWindow {
 
             Text { text: "Громкость"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize; font.bold: true }
 
-            // Слайдер
+            // Слайдер (высокая зона клика — легко попасть)
             Item {
                 id: slider
                 Layout.fillWidth: true
-                height: 16
+                height: 26
                 Rectangle {   // дорожка
                     anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width; height: 4; radius: 2
+                    width: parent.width; height: 5; radius: 2.5
                     color: Qt.rgba(221/255, 228/255, 236/255, 0.15)
                 }
                 Rectangle {   // заполнение
                     anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width * Math.min(1, vol); height: 4; radius: 2
+                    width: parent.width * Math.min(1, vol); height: 5; radius: 2.5
                     color: Theme.sound
                 }
                 Rectangle {   // ручка
                     anchors.verticalCenter: parent.verticalCenter
                     x: Math.min(1, vol) * (parent.width - width)
-                    width: 12; height: 12; radius: 6
+                    width: 15; height: 15; radius: 7.5
                     color: Theme.text
                 }
                 MouseArea {
@@ -191,6 +195,71 @@ PopupWindow {
         }
     }
 
+    // ── CPU ──
+    Component {
+        id: cpuC
+        ColumnLayout {
+            property string la: "…"
+            property string cores: ""
+            spacing: 6
+            implicitWidth: 205
+
+            Process { id: laP; command: ["cat", "/proc/loadavg"]
+                stdout: StdioCollector { onStreamFinished: la = ("" + text).trim().split(" ").slice(0, 3).join("  ·  ") } }
+            Process { id: ncP; command: ["nproc"]
+                stdout: StdioCollector { onStreamFinished: cores = ("" + text).trim() } }
+            Timer { interval: 2000; running: true; repeat: true; triggeredOnStart: true
+                onTriggered: { laP.running = true; if (cores === "") ncP.running = true } }
+
+            Text { text: "Процессор"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize; font.bold: true }
+            Text { text: "Load: " + la; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
+            Text { text: "Ядер: " + (cores || "…"); color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
+        }
+    }
+
+    // ── GPU ──
+    Component {
+        id: gpuC
+        ColumnLayout {
+            property int temp: 0
+            property int busy: 0
+            spacing: 6
+            implicitWidth: 205
+
+            Process { id: tP; command: ["sh", "-c", "cat /sys/devices/pci0000:00/0000:00:08.1/0000:03:00.0/hwmon/hwmon*/temp1_input"]
+                stdout: StdioCollector { onStreamFinished: { const v = parseInt(("" + text).trim()); if (!isNaN(v)) temp = Math.round(v / 1000) } } }
+            Process { id: bP; command: ["sh", "-c", "cat /sys/devices/pci0000:00/0000:00:08.1/0000:03:00.0/gpu_busy_percent 2>/dev/null || echo -1"]
+                stdout: StdioCollector { onStreamFinished: { const v = parseInt(("" + text).trim()); if (!isNaN(v)) busy = v } } }
+            Timer { interval: 2000; running: true; repeat: true; triggeredOnStart: true
+                onTriggered: { tP.running = true; bP.running = true } }
+
+            Text { text: "Видеокарта (amdgpu)"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize; font.bold: true }
+            Text { text: "Температура: " + temp + "°C"; color: temp >= 70 ? Theme.warning : Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
+            Text { visible: busy >= 0; text: "Загрузка: " + busy + "%"; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
+        }
+    }
+
+    // ── Сеть ──
+    Component {
+        id: netC
+        ColumnLayout {
+            property string iface: "…"
+            property string totals: "…"
+            spacing: 6
+            implicitWidth: 230
+
+            Process { id: iP; command: ["sh", "-c", "ip -o -4 route get 1.1.1.1 2>/dev/null | awk '{print $5\"  ·  \"$7}'"]
+                stdout: StdioCollector { onStreamFinished: iface = ("" + text).trim() || "нет соединения" } }
+            Process { id: tP2; command: ["sh", "-c", "awk -F'[: ]+' 'NR>2 && $2!=\"lo\" {rx+=$3; tx+=$11} END {printf \"%.1f GB  ↑ %.1f GB\", rx/1073741824, tx/1073741824}' /proc/net/dev"]
+                stdout: StdioCollector { onStreamFinished: totals = ("" + text).trim() } }
+            Component.onCompleted: { iP.running = true; tP2.running = true }
+
+            Text { text: "Сеть"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize; font.bold: true }
+            Text { text: iface; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
+            Text { text: "С загрузки: ↓ " + totals; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
+        }
+    }
+
     // ── Медиа (MPRIS) ──
     Component {
         id: mediaC
@@ -212,6 +281,9 @@ PopupWindow {
                 return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0")
             }
 
+            // ВАЖНО: все строки всегда занимают место (opacity вместо visible),
+            // иначе при смене трека карточка меняет высоту, курсор оказывается
+            // за её пределами и попап закрывается.
             Text {
                 Layout.fillWidth: true
                 text: pl ? (pl.trackTitle || "Без названия") : "Ничего не играет"
@@ -220,8 +292,7 @@ PopupWindow {
             }
             Text {
                 Layout.fillWidth: true
-                visible: pl && (pl.trackArtist || "") !== ""
-                text: pl ? (pl.trackArtist || "") : ""
+                text: (pl ? (pl.trackArtist || "") : "") || " "
                 color: Theme.muted; elide: Text.ElideRight
                 font.family: Theme.font; font.pixelSize: Theme.fontSize - 1
             }
@@ -230,17 +301,17 @@ PopupWindow {
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 8
-                visible: pl && (pl.length ?? 0) > 0
+                opacity: pl && (pl.length ?? 0) > 0 ? 1 : 0.25
                 Text { text: fmt(pos); color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 2 }
                 Item {
                     Layout.fillWidth: true; height: 4
                     Rectangle { anchors.fill: parent; radius: 2; color: Qt.rgba(221/255, 228/255, 236/255, 0.15) }
                     Rectangle {
-                        width: parent.width * (pl && pl.length > 0 ? Math.min(1, pos / pl.length) : 0)
+                        width: parent.width * (pl && (pl.length ?? 0) > 0 ? Math.min(1, pos / pl.length) : 0)
                         height: parent.height; radius: 2; color: Theme.accent
                     }
                 }
-                Text { text: pl ? fmt(pl.length) : ""; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 2 }
+                Text { text: pl && (pl.length ?? 0) > 0 ? fmt(pl.length) : "-:--"; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 2 }
             }
 
             // Управление

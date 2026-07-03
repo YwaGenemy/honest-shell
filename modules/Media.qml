@@ -23,13 +23,8 @@ Pill {
         ? Popouts.hoverEnter("media", mapToItem(null, width / 2, 0).x)
         : Popouts.hoverLeave()
 
+    hpad: 9
+    // Только нота — название трека живёт в попапе (иначе пилюля наезжает
+    // на воркспейсы, когда их много)
     Icon { name: "music"; color: root.playing ? Theme.layout : Theme.muted }
-    Text {
-        text: root.pl ? (root.pl.trackTitle || "…") : ""
-        color: root.playing ? Theme.text : Theme.muted
-        font.family: Theme.font
-        font.pixelSize: Theme.fontSize
-        elide: Text.ElideRight
-        Layout.maximumWidth: 150
-    }
 }

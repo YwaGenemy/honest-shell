@@ -10,7 +10,9 @@ Pill {
     property int  usage: 0
     property real _prevTotal: 0
     property real _prevIdle: 0
-    tooltip: "CPU: " + usage + "%"
+    onHoveredChanged: hovered
+        ? Popouts.hoverEnter("cpu", mapToItem(null, width / 2, 0).x)
+        : Popouts.hoverLeave()
 
     Icon { name: "cpu"; color: root.usage >= 85 ? Theme.warning : Theme.muted }
     Text {
