@@ -24,18 +24,6 @@ Item {
         return o;
     }
 
-    // Непрерывные группы занятых воркспейсов: [{start, end}, …] (id, 1-based)
-    readonly property var occRuns: {
-        const runs = [];
-        let start = -1;
-        for (let i = 1; i <= count; i++) {
-            if (occupied[i] === true && start < 0) start = i;
-            if (occupied[i] !== true && start > 0) { runs.push({ start: start, end: i - 1 }); start = -1; }
-        }
-        if (start > 0) runs.push({ start: start, end: count });
-        return runs;
-    }
-
     // Минимум 3 ячейки; дальше панель растёт под текущий/занятые воркспейсы (4, 5, …)
     readonly property int count: {
         let m = 3;
@@ -92,17 +80,43 @@ Item {
         Behavior on width { NumberAnimation { duration: Theme.spatialDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
 
         // — Слой 1: фон занятых воркспейсов —
-        // Непрерывную группу занятых рисуем ОДНОЙ капсулой: отдельные прямоугольники
-        // на дробном масштабе монитора дают волосяные щели на стыках.
-        Repeater {
-            model: root.occRuns
-            delegate: Rectangle {
-                required property var modelData
-                x: (modelData.start - 1) * root.cellW
-                width: (modelData.end - modelData.start + 1) * root.cellW
-                height: root.cellH
-                radius: height / 2
-                color: Qt.rgba(221/255, 228/255, 236/255, 0.13)
+        // Ячейки рисуются НЕПРОЗРАЧНЫМИ с нахлёстом 1px на стыках внутри общего слоя
+        // (layer.enabled), а полупрозрачность применяется к слою целиком. Так нет ни
+        // волосяных щелей на дробном масштабе, ни яркой полосы от нахлёста, и при этом
+        // каждая ячейка анимируется отдельно — склейка соседей плавная.
+        Item {
+            id: occLayer
+            anchors.fill: parent
+            layer.enabled: true
+            opacity: 0.13
+
+            Repeater {
+                model: root.count
+                delegate: Rectangle {
+                    id: occ
+                    required property int index
+                    readonly property bool isOcc: root.occupied[index + 1] === true
+                    readonly property bool prevOcc: root.occupied[index] === true       // сосед слева (ws id = index)
+                    readonly property bool nextOcc: root.occupied[index + 2] === true   // сосед справа
+
+                    x: index * root.cellW - (prevOcc ? 1 : 0)
+                    width: root.cellW + (prevOcc ? 1 : 0) + (nextOcc ? 1 : 0)
+                    height: root.cellH
+                    color: "#dde4ec"
+                    opacity: isOcc ? 1 : 0
+
+                    readonly property real r: height / 2
+                    topLeftRadius:     prevOcc ? 0 : r
+                    bottomLeftRadius:  prevOcc ? 0 : r
+                    topRightRadius:    nextOcc ? 0 : r
+                    bottomRightRadius: nextOcc ? 0 : r
+
+                    Behavior on opacity        { NumberAnimation { duration: Theme.effectsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
+                    Behavior on topLeftRadius  { NumberAnimation { duration: Theme.effectsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
+                    Behavior on topRightRadius { NumberAnimation { duration: Theme.effectsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
+                    Behavior on bottomLeftRadius  { NumberAnimation { duration: Theme.effectsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
+                    Behavior on bottomRightRadius { NumberAnimation { duration: Theme.effectsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
+                }
             }
         }
 
