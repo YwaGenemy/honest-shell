@@ -11,6 +11,9 @@ QtObject {
     // id воркспейса → накопленный «жар» (в тиках, с остыванием)
     property var heat: ({})
 
+    // Сколько тиков = «раскалён» (интенсивность 1.0)
+    readonly property real fullScale: 16
+
     // ПРЕВЬЮ-РЕЖИМ: нагрев за секунды (полный раскал ≈ 8с фокуса, остывание ≈ 20с)
     readonly property Timer _tick: Timer {
         interval: 500; running: true; repeat: true
