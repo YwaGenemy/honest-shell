@@ -10,8 +10,7 @@ import "root:/"
 Item {
     id: root
     property var panelWindow
-    readonly property int count: 3
-    readonly property int current: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 1
+    readonly property int current: Math.max(1, Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 1)
 
     // Геометрия ячеек: без зазора, чтобы занятые могли сливаться
     readonly property real cellW: 26
@@ -23,6 +22,14 @@ Item {
         for (const ws of Hyprland.workspaces.values)
             o[ws.id] = (ws.lastIpcObject?.windows ?? 0) > 0;
         return o;
+    }
+
+    // Минимум 3 ячейки; дальше панель растёт под текущий/занятые воркспейсы (4, 5, …)
+    readonly property int count: {
+        let m = 3;
+        for (const ws of Hyprland.workspaces.values)
+            if (ws.id > m && (ws.lastIpcObject?.windows ?? 0) > 0) m = ws.id;
+        return Math.max(m, current);
     }
 
     implicitWidth: bg.implicitWidth
@@ -58,6 +65,8 @@ Item {
         anchors.centerIn: parent
         width: root.cellW * root.count
         height: root.cellH
+        // Появление/уход ячеек 4+ — плавное расширение пилюли
+        Behavior on width { NumberAnimation { duration: Theme.spatialDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
 
         // — Слой 1: фон занятых воркспейсов (соседние сливаются в капсулу) —
         Repeater {
@@ -71,7 +80,7 @@ Item {
 
                 x: index * root.cellW
                 width: root.cellW; height: root.cellH
-                color: Qt.rgba(221/255, 228/255, 236/255, 0.07)
+                color: Qt.rgba(221/255, 228/255, 236/255, 0.13)
                 opacity: isOcc ? 1 : 0
 
                 readonly property real r: height / 2
@@ -92,7 +101,7 @@ Item {
         // Два края едут к одной цели с разной скоростью → растяжение и догон.
         Item {
             id: indicator
-            readonly property real target: (Math.min(Math.max(root.current, 1), root.count) - 1) * root.cellW
+            readonly property real target: (root.current - 1) * root.cellW
             property real edgeFast: target
             property real edgeSlow: target
 
