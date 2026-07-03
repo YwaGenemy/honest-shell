@@ -14,8 +14,12 @@ Pill {
     readonly property bool crit: pct <= 15 && !charging
     readonly property bool warn: pct <= 30 && !charging
 
-    tooltip: (charging ? "Зарядка — " : "Батарея — ") + pct + "%"
     accentColor: crit ? Theme.critical : (warn ? Theme.warning : Theme.battery)
+
+    // Морфящий попап вместо тултипа
+    onHoveredChanged: hovered
+        ? Popouts.hoverEnter("battery", mapToItem(null, width / 2, 0).x)
+        : Popouts.hoverLeave()
 
     readonly property color batColor: crit ? Theme.critical : (warn ? Theme.warning : Theme.battery)
 

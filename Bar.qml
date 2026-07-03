@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import "root:/"
+import "root:/components"
 import "root:/modules"
 
 PanelWindow {
@@ -44,6 +45,7 @@ PanelWindow {
             LayoutSwitcher { panelWindow: bar }
             CpuUsage      { panelWindow: bar }
             GpuTemp       { panelWindow: bar }
+            NetSpeed      { panelWindow: bar }
             PowerProfile  { panelWindow: bar }
         }
 
@@ -60,6 +62,8 @@ PanelWindow {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.groupGap
+            Privacy { panelWindow: bar }
+            Media   { panelWindow: bar }
             Tray    { panelWindow: bar }
             Volume  { panelWindow: bar }
             Battery { panelWindow: bar }
@@ -68,4 +72,7 @@ PanelWindow {
             Logout  { panelWindow: bar }
         }
     }
+
+    // Единый морфящий попап (громкость/батарея/медиа)
+    PopoutWindow { barContent: content }
 }

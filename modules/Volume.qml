@@ -11,10 +11,13 @@ Pill {
     readonly property var sink: Pipewire.defaultAudioSink
     readonly property bool muted: sink && sink.audio ? sink.audio.muted : false
     readonly property int vol: sink && sink.audio ? Math.round(sink.audio.volume * 100) : 0
-    tooltip: muted ? "Звук выключен" : ("Громкость: " + vol + "%")
-
     // Держим свойства sink «живыми»
     PwObjectTracker { objects: [Pipewire.defaultAudioSink] }
+
+    // Морфящий попап вместо тултипа
+    onHoveredChanged: hovered
+        ? Popouts.hoverEnter("volume", mapToItem(null, width / 2, 0).x)
+        : Popouts.hoverLeave()
 
     onClicked: Quickshell.execDetached(["pavucontrol"])
     onRightClicked: if (sink && sink.audio) sink.audio.muted = !sink.audio.muted
