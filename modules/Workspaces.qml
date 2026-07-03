@@ -1,5 +1,7 @@
 // Воркспейсы 1/2/3 (persistent). Клик — переход, скролл — сосед по кругу.
-// Активный «перетекает» акцентной подсветкой (анимация ширины/цвета).
+// Активный индикатор — скользящая пилюля-«резинка»: передний край едет быстрее
+// заднего (разные кривые), при переключении она растягивается и догоняет себя.
+// Занятые воркспейсы подсвечены фоном; соседние занятые сливаются в одну капсулу.
 import QtQuick
 import QtQuick.Effects
 import Quickshell.Hyprland
@@ -10,6 +12,18 @@ Item {
     property var panelWindow
     readonly property int count: 3
     readonly property int current: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 1
+
+    // Геометрия ячеек: без зазора, чтобы занятые могли сливаться
+    readonly property real cellW: 26
+    readonly property real cellH: 22
+
+    // Какие воркспейсы заняты окнами (id → bool), обновляется от событий Hyprland
+    readonly property var occupied: {
+        const o = {};
+        for (const ws of Hyprland.workspaces.values)
+            o[ws.id] = (ws.lastIpcObject?.windows ?? 0) > 0;
+        return o;
+    }
 
     implicitWidth: bg.implicitWidth
     implicitHeight: Theme.pillHeight
@@ -23,7 +37,7 @@ Item {
     Rectangle {
         id: bg
         anchors.fill: parent
-        implicitWidth: roww.implicitWidth + 2 * 7   // компактнее обычной пилюли: цифры прижаты к краям
+        implicitWidth: cells.width + 2 * 7
         radius: Theme.pillRadius
         color: Theme.surface
         border.width: 1
@@ -39,11 +53,64 @@ Item {
         }
     }
 
-    Row {
-        id: roww
+    Item {
+        id: cells
         anchors.centerIn: parent
-        spacing: 3
+        width: root.cellW * root.count
+        height: root.cellH
 
+        // — Слой 1: фон занятых воркспейсов (соседние сливаются в капсулу) —
+        Repeater {
+            model: root.count
+            delegate: Rectangle {
+                id: occ
+                required property int index
+                readonly property bool isOcc: root.occupied[index + 1] === true
+                readonly property bool prevOcc: root.occupied[index] === true       // сосед слева (ws id = index)
+                readonly property bool nextOcc: root.occupied[index + 2] === true   // сосед справа
+
+                x: index * root.cellW
+                width: root.cellW; height: root.cellH
+                color: Qt.rgba(221/255, 228/255, 236/255, 0.07)
+                opacity: isOcc ? 1 : 0
+
+                readonly property real r: height / 2
+                topLeftRadius:     prevOcc ? 0 : r
+                bottomLeftRadius:  prevOcc ? 0 : r
+                topRightRadius:    nextOcc ? 0 : r
+                bottomRightRadius: nextOcc ? 0 : r
+
+                Behavior on opacity        { NumberAnimation { duration: Theme.effectsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
+                Behavior on topLeftRadius  { NumberAnimation { duration: Theme.effectsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
+                Behavior on topRightRadius { NumberAnimation { duration: Theme.effectsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
+                Behavior on bottomLeftRadius  { NumberAnimation { duration: Theme.effectsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
+                Behavior on bottomRightRadius { NumberAnimation { duration: Theme.effectsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
+            }
+        }
+
+        // — Слой 2: активная пилюля-«резинка» —
+        // Два края едут к одной цели с разной скоростью → растяжение и догон.
+        Item {
+            id: indicator
+            readonly property real target: (Math.min(Math.max(root.current, 1), root.count) - 1) * root.cellW
+            property real edgeFast: target
+            property real edgeSlow: target
+
+            Behavior on edgeFast { NumberAnimation { duration: Theme.spatialFastDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatialFast } }
+            Behavior on edgeSlow { NumberAnimation { duration: Theme.spatialDur;     easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.spatial } }
+
+            Rectangle {
+                x: Math.min(indicator.edgeFast, indicator.edgeSlow)
+                width: Math.abs(indicator.edgeFast - indicator.edgeSlow) + root.cellW
+                height: root.cellH
+                radius: height / 2
+                color: Theme.accentSoft
+                border.width: 1
+                border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.45)
+            }
+        }
+
+        // — Слой 3: цифры + клик-зоны —
         Repeater {
             model: root.count
             delegate: Item {
@@ -51,29 +118,20 @@ Item {
                 required property int index
                 readonly property int wsId: index + 1
                 readonly property bool isActive: root.current === wsId
-                width: isActive ? 28 : 24
-                height: 22
-                anchors.verticalCenter: parent.verticalCenter
-                Behavior on width { NumberAnimation { duration: Theme.med; easing.type: Theme.easeType } }
 
-                Rectangle {
-                    anchors.fill: parent
-                    radius: height / 2
-                    color: cell.isActive ? Theme.accentSoft
-                                         : (cellMa.containsMouse ? Theme.surfaceHi : "transparent")
-                    border.width: cell.isActive ? 1 : 0
-                    border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.45)
-                    Behavior on color { ColorAnimation { duration: Theme.med } }
+                x: index * root.cellW
+                width: root.cellW; height: root.cellH
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: cell.wsId
-                        color: cell.isActive ? Theme.accent : Theme.muted
-                        font.family: Theme.font
-                        font.pixelSize: Theme.fontSize
-                        font.bold: cell.isActive
-                        Behavior on color { ColorAnimation { duration: Theme.med } }
-                    }
+                Text {
+                    anchors.centerIn: parent
+                    text: cell.wsId
+                    color: cell.isActive ? Theme.accent
+                         : (root.occupied[cell.wsId] === true ? Theme.text
+                         : (cellMa.containsMouse ? Theme.text : Theme.muted))
+                    font.family: Theme.font
+                    font.pixelSize: Theme.fontSize
+                    font.bold: cell.isActive
+                    Behavior on color { ColorAnimation { duration: Theme.effectsDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
                 }
                 MouseArea {
                     id: cellMa

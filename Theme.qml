@@ -49,4 +49,14 @@ QtObject {
     // Мягкое «дорогое» ускорение
     readonly property var  ease:      [0.22, 1, 0.36, 1, 1, 1]   // cubic out-expo-ish (для Behavior easing.bezierCurve)
     readonly property int  easeType:  Easing.OutCubic
+
+    // — Кривые Material 3 Expressive (BezierSpline) —
+    // spatial: для движения/размеров, с лёгким overshoot («перелетает» и возвращается)
+    // effects: для opacity/цвета, без overshoot
+    readonly property list<real> spatial:      [0.38, 1.21, 0.22, 1.00, 1, 1]
+    readonly property list<real> spatialFast:  [0.42, 1.67, 0.21, 0.90, 1, 1]
+    readonly property list<real> effects:      [0.34, 0.80, 0.34, 1.00, 1, 1]
+    readonly property int spatialDur:     450
+    readonly property int spatialFastDur: 300
+    readonly property int effectsDur:     200
 }
