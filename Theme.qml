@@ -35,12 +35,12 @@ QtObject {
     // — Геометрия / ритм —
     readonly property int barHeight:    34
     readonly property int barMargin:    8      // горизонтальный отступ панели от краёв экрана
-    readonly property int barMarginTop: 4      // вертикальный отступ панели от верхней границы
+    readonly property int barMarginTop: 0      // прижато: визуальный зазор сверху = зазору до окон (2px, gaps_out 0)
     readonly property int pillHeight:   30
     readonly property int pillRadius:   11
     readonly property int pillPadH:     12     // горизонтальный внутренний отступ пилюли
     readonly property int gap:          7      // зазор между модулями в группе
-    readonly property int groupGap:     10     // зазор между пилюлями-соседями
+    readonly property int groupGap:     8      // зазор между пилюлями-соседями
 
     // — Тайминги (микроанимации) —
     readonly property int  fast:   130
