@@ -11,6 +11,9 @@ QtObject {
     // id воркспейса → накопленный «жар» (в тиках, с остыванием)
     property var heat: ({})
 
+    // Сколько тиков = «раскалён» (интенсивность 1.0): 600 тиков ≈ 50 мин фокуса
+    readonly property real fullScale: 600
+
     readonly property Timer _tick: Timer {
         interval: 5000; running: true; repeat: true
         onTriggered: {
@@ -27,6 +30,6 @@ QtObject {
 
     // 0..1: 0 — холодный, 1 — ≈50 минут недавнего фокуса
     function intensity(id) {
-        return Math.min(1, (heat[id] ?? 0) / 600);
+        return Math.min(1, (heat[id] ?? 0) / fullScale);
     }
 }
