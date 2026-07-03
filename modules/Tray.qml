@@ -34,7 +34,7 @@ Item {
         layer.enabled: true
         layer.effect: MultiEffect {
             shadowEnabled: true; shadowColor: Theme.shadow
-            shadowBlur: 0.55; shadowVerticalOffset: 3; autoPaddingEnabled: true
+            shadowBlur: 1.0; shadowVerticalOffset: 2; autoPaddingEnabled: true
         }
     }
 

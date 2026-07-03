@@ -24,8 +24,8 @@ QtObject {
     readonly property color warning:     "#e8c46b"
     readonly property color critical:    "#e88484"
 
-    // — Тени —
-    readonly property color shadow: Qt.rgba(0, 0, 0, 0.55)
+    // — Тени — (мягкие: на светлом фоне плотная тень выглядит грязным блоком)
+    readonly property color shadow: Qt.rgba(0, 0, 0, 0.35)
 
     // — Шрифты —
     readonly property string font:      "CaskaydiaCove Nerd Font"

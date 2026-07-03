@@ -2,6 +2,7 @@
 // Данные берём из родного DBus-меню (QsMenuOpener), вид — полностью наш:
 // тёмное стекло, hover-подсветка, чекбоксы, сепараторы, подменю раскрываются инлайн.
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import "root:/"
 
@@ -26,18 +27,18 @@ PopupWindow {
 
     QsMenuOpener { id: opener; menu: root.menuHandle }
 
-    // «Нарисованная» тень вместо MultiEffect: рисуется мгновенно, без компиляции
-    // шейдера на первом открытии (из-за неё и был рывок стилей).
-    Rectangle {
-        x: card.x - 1; y: card.y + 2
-        width: card.width + 2; height: card.height + 2
-        radius: card.radius + 1
-        color: Theme.shadow
-        opacity: card.opacity * 0.6
-    }
-
     Rectangle {
         id: card
+        // Мягкая тень: шейдер MultiEffect уже прогрет пилюлями при старте,
+        // рывка на первом открытии больше нет.
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowColor: Theme.shadow
+            shadowBlur: 1.0
+            shadowVerticalOffset: 3
+            autoPaddingEnabled: true
+        }
         x: 12; y: 6
         width: 310
         height: list.implicitHeight + 12

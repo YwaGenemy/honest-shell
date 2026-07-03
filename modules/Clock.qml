@@ -1,6 +1,7 @@
 // Часы HH:MM. Клик → календарь на месяц: сегодня подсвечено, колесо листает
 // месяцы, клик по заголовку — назад к текущему.
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import "root:/"
 import "root:/components"
@@ -43,17 +44,16 @@ Pill {
         anchor.gravity: Edges.Bottom
         anchor.margins.top: 8
 
-        // Нарисованная тень (без шейдеров — мгновенно)
-        Rectangle {
-            x: card.x - 1; y: card.y + 2
-            width: card.width + 2; height: card.height + 2
-            radius: card.radius + 1
-            color: Theme.shadow
-            opacity: card.opacity * 0.6
-        }
-
         Rectangle {
             id: card
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                shadowEnabled: true
+                shadowColor: Theme.shadow
+                shadowBlur: 1.0
+                shadowVerticalOffset: 3
+                autoPaddingEnabled: true
+            }
             x: 6; y: 4
             width: 250
             height: col.implicitHeight + 24

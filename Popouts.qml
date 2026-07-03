@@ -15,7 +15,8 @@ QtObject {
 
     readonly property Timer _openT: Timer {
         interval: 230
-        onTriggered: { root.name = root._pendingName; root.anchorX = root._pendingX }
+        // anchorX строго ДО name: морф слушает nameChanged и читает anchorX
+        onTriggered: { root.anchorX = root._pendingX; root.name = root._pendingName }
     }
     readonly property Timer _closeT: Timer {
         interval: 320
@@ -25,7 +26,7 @@ QtObject {
     function hoverEnter(n, x) {
         _closeT.stop()
         _pendingName = n; _pendingX = x
-        if (shown) { name = n; anchorX = x }   // уже открыт → морф без задержки
+        if (shown) { anchorX = x; name = n }   // уже открыт → морф без задержки (anchorX до name!)
         else _openT.restart()
     }
     function hoverLeave() { _openT.stop(); _closeT.restart() }

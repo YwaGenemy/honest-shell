@@ -4,6 +4,7 @@
 // Клики мимо карточки проходят насквозь (mask), hover на карточке держит её открытой.
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
@@ -14,9 +15,6 @@ import "root:/"
 PopupWindow {
     id: win
     required property Item barContent
-
-    // Имя, которое сейчас отрисовано (отстаёт от Popouts.name на время кроссфейда)
-    property string shownName: ""
 
     visible: Popouts.shown || card.opacity > 0.01
     color: "transparent"
@@ -30,41 +28,71 @@ PopupWindow {
     // Ввод — только по карточке
     mask: Region { item: card }
 
-    // Кроссфейд контента при переключении между модулями
-    Connections {
-        target: Popouts
-        function onNameChanged() {
-            if (Popouts.name === "") return
-            if (win.shownName === "") { win.shownName = Popouts.name; return }  // первое открытие — без фейда
-            if (Popouts.name !== win.shownName) swapAnim.restart()
-        }
-    }
-    // Порядок морфа: погасить старый контент → карточка ПУСТОЙ доезжает и меняет
-    // размер → новый контент проявляется уже на финальном месте. Если проявлять
-    // во время движения, выглядит как «спавн мимо + доравнивание».
-    SequentialAnimation {
-        id: swapAnim
-        NumberAnimation { target: cload; property: "opacity"; to: 0; duration: 70; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects }
-        ScriptAction { script: win.shownName = Popouts.name }
-        PauseAnimation { duration: Theme.decelDur - 60 }   // карточка едет пустой
-        NumberAnimation { target: cload; property: "opacity"; to: 1; duration: 140; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects }
+    // ── Морф без Behavior-ов ──
+    // x зависит от width; если геометрию анимировать Behavior-ами, цель x
+    // пересчитывается каждый кадр движения width и анимация перезапускается
+    // 60 раз/с — получается «прыжок + доравнивание». Поэтому: новый контент
+    // грузится в скрытый Loader, его размер известен сразу, и карточка едет
+    // к финальным значениям ОДНОЙ ParallelAnimation с кроссфейдом.
+    property bool useA: true
+
+    function compFor(n) {
+        return n === "volume" ? volumeC
+             : n === "battery" ? batteryC
+             : n === "media" ? mediaC
+             : n === "cpu" ? cpuC
+             : n === "gpu" ? gpuC
+             : n === "net" ? netC : null
     }
 
-    // Нарисованная тень
-    Rectangle {
-        x: card.x - 1; y: card.y + 2
-        width: card.width + 2; height: card.height + 2
-        radius: card.radius + 1
-        color: Theme.shadow
-        opacity: card.opacity * 0.6
+    function morph() {
+        const nm = Popouts.name
+        if (nm === "") return
+        const incoming = useA ? lb : la      // скрытый лоадер
+        const outgoing = useA ? la : lb
+        incoming.sourceComponent = compFor(nm)
+        const w = (incoming.item ? incoming.item.implicitWidth : 200) + card.pad * 2
+        const h = (incoming.item ? incoming.item.implicitHeight : 60) + card.pad * 2
+        const tx = Math.max(8, Math.min(Popouts.anchorX - w / 2, win.implicitWidth - w - 8))
+
+        useA = !useA                          // opacity-биндинги лоадеров сделают кроссфейд
+        if (card.opacity < 0.5) {             // свежее открытие — ставим без анимации
+            morphAnim.stop()
+            card.x = tx; card.width = w; card.height = h
+        } else {
+            xA.to = tx; wA.to = w; hA.to = h
+            morphAnim.restart()
+        }
+    }
+
+    Connections {
+        target: Popouts
+        function onNameChanged() { win.morph() }
+    }
+
+    ParallelAnimation {
+        id: morphAnim
+        NumberAnimation { id: xA; target: card; property: "x";      duration: Theme.decelDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decel }
+        NumberAnimation { id: wA; target: card; property: "width";  duration: Theme.decelDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decel }
+        NumberAnimation { id: hA; target: card; property: "height"; duration: Theme.decelDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decel }
     }
 
     Rectangle {
         id: card
         readonly property real pad: 16
-        width: (cload.item ? cload.item.implicitWidth : 200) + pad * 2
-        height: (cload.item ? cload.item.implicitHeight : 60) + pad * 2
-        x: Math.max(8, Math.min(Popouts.anchorX - width / 2, win.implicitWidth - width - 8))
+
+        // Настоящая мягкая тень (шейдер уже прогрет пилюлями при старте)
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowColor: Theme.shadow
+            shadowBlur: 1.0
+            shadowVerticalOffset: 3
+            autoPaddingEnabled: true
+        }
+        // Геометрия управляется ТОЛЬКО morph()/morphAnim — биндингов нет
+        width: 200
+        height: 60
         y: 0
         radius: 14
         color: Theme.surfaceHi
@@ -73,10 +101,6 @@ PopupWindow {
 
         opacity: Popouts.shown ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
-        // Морф: без перелёта (decel) — иначе карточка «доравнивается» после прыжка
-        Behavior on x      { enabled: Popouts.shown; NumberAnimation { duration: Theme.decelDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decel } }
-        Behavior on width  { enabled: Popouts.shown; NumberAnimation { duration: Theme.decelDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decel } }
-        Behavior on height { enabled: Popouts.shown; NumberAnimation { duration: Theme.decelDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decel } }
         transform: Translate {
             y: Popouts.shown ? 0 : -6
             Behavior on y { NumberAnimation { duration: 160; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
@@ -86,15 +110,18 @@ PopupWindow {
             onHoveredChanged: hovered ? Popouts.holdOpen() : Popouts.hoverLeave()
         }
 
+        // Два лоадера: front виден, back с новым контентом — кроссфейд сменой useA
         Loader {
-            id: cload
+            id: la
             x: card.pad; y: card.pad
-            sourceComponent: win.shownName === "volume" ? volumeC
-                           : win.shownName === "battery" ? batteryC
-                           : win.shownName === "media" ? mediaC
-                           : win.shownName === "cpu" ? cpuC
-                           : win.shownName === "gpu" ? gpuC
-                           : win.shownName === "net" ? netC : null
+            opacity: win.useA ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
+        }
+        Loader {
+            id: lb
+            x: card.pad; y: card.pad
+            opacity: win.useA ? 0 : 1
+            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
         }
     }
 
