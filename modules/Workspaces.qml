@@ -24,6 +24,22 @@ Item {
         return o;
     }
 
+    // Число окон на воркспейсе (id → count)
+    readonly property var winCounts: {
+        const o = {};
+        for (const ws of Hyprland.workspaces.values)
+            o[ws.id] = ws.lastIpcObject?.windows ?? 0;
+        return o;
+    }
+
+    // «Температура» по времени фокуса: нейтральный → акцент → янтарь
+    function heatColor(t) {
+        const mix = (a, b, k) => Qt.rgba(a.r + (b.r - a.r) * k, a.g + (b.g - a.g) * k, a.b + (b.b - a.b) * k, 1);
+        const base = Qt.color("#dde4ec");
+        if (t < 0.5) return mix(base, Theme.accent, t * 2);
+        return mix(Theme.accent, Qt.color(Theme.warning), (t - 0.5) * 2);
+    }
+
     // Минимум 3 ячейки; дальше панель растёт под текущий/занятые воркспейсы (4, 5, …)
     readonly property int count: {
         let m = 3;
