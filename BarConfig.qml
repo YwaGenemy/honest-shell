@@ -11,9 +11,9 @@ Singleton {
     readonly property string file: Quickshell.env("HOME") + "/.config/quickshell/bar-layout.json"
 
     // Порядок модулей по зонам (значения по умолчанию — текущая панель)
-    property var left:   ["layout", "cpu", "gpu", "net", "power", "clipboard"]
+    property var left:   ["settings", "layout", "cpu", "gpu", "net", "power", "clipboard"]
     property var center: ["workspaces"]
-    property var right:  ["privacy", "updates", "media", "tray", "volume", "battery", "clock", "notes", "logout", "settings"]
+    property var right:  ["privacy", "updates", "media", "tray", "volume", "battery", "clock", "notes", "logout"]
 
     // Все известные модули: id → русское имя (порядок = порядок в «Доступных»)
     readonly property var names: ({

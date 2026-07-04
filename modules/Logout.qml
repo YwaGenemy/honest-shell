@@ -1,106 +1,88 @@
-// Питание: клик по ⏻ разворачивает действия прямо в пилюле
-// (блокировка / сон / перезагрузка / выключение). ПКМ — wlogout, как раньше.
-// Сворачивается через 2с после ухода курсора.
+// Питание: клик — выпадающее меню ВНИЗ (блокировка / сон / перезагрузка / выключение).
+// ПКМ — wlogout. Меню не распихивает соседние пины: оно в отдельном попапе.
 import QtQuick
 import Quickshell
 import "root:/"
 import "root:/components"
 
-Item {
+Pill {
     id: root
-    property var panelWindow
     property bool open: false
+    active: open
+    accentColor: Theme.critical
+    tooltip: "Питание"
 
-    implicitWidth: bg.width
-    implicitHeight: Theme.pillHeight
+    onClicked: open = !open
+    onRightClicked: Quickshell.execDetached(["wlogout"])
 
-    Timer { id: hideT; interval: 2000; onTriggered: root.open = false }
+    Icon {
+        name: "power"
+        color: root.open || root.hovered ? Theme.critical : Theme.muted
+    }
 
-    Rectangle {
-        id: bg
-        width: row.implicitWidth + 24
-        height: Theme.pillHeight
-        radius: Theme.pillRadius
-        color: powerMa.containsMouse || root.open ? Theme.surfaceHi : Theme.surface
-        border.width: 1
-        border.color: powerMa.containsMouse || root.open ? Theme.borderHi : Theme.border
-        // Все анимации разворота — одна кривая и длительность (decel, без перелёта),
-        // чтобы кнопки, ширина пилюли и сдвиг соседей ехали синхронно.
-        Behavior on width { NumberAnimation { duration: Theme.decelDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decel } }
-        Behavior on color { ColorAnimation { duration: Theme.med } }
+    // Выпадающее меню под кнопкой
+    PopupWindow {
+        id: pop
+        visible: root.open && root.panelWindow !== undefined
+        grabFocus: true                              // клик мимо — закрыть
+        onVisibleChanged: if (!visible) root.open = false
+        color: "transparent"
+        implicitWidth: card.width + 24
+        implicitHeight: card.height + 20
+        anchor.item: root
+        anchor.edges: Edges.Bottom
+        anchor.gravity: Edges.Bottom
+        anchor.margins.top: 8
 
-        Row {
-            id: row
-            anchors.centerIn: parent
-            spacing: 8
+        Rectangle {
+            id: card
+            x: 12; y: 4
+            width: actRow.implicitWidth + 20
+            height: 48
+            radius: 13
+            color: Theme.surfaceHi
+            border.width: 1
+            border.color: Theme.border
 
-            // Разворачивающиеся действия (слева от кнопки питания)
-            Item {
-                anchors.verticalCenter: parent.verticalCenter
-                width: root.open ? acts.implicitWidth : 0
-                height: Theme.pillHeight
-                clip: true
-                Behavior on width { NumberAnimation { duration: Theme.decelDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decel } }
-
-                Row {
-                    id: acts
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 6
-                    opacity: root.open ? 1 : 0
-                    Behavior on opacity { NumberAnimation { duration: Theme.decelDur; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decel } }
-
-                    component ActBtn: MouseArea {
-                        id: btn
-                        property string icon
-                        property color tint: Theme.muted
-                        property var run
-                        width: 24; height: 24
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: hideT.stop()
-                        onExited: if (root.open) hideT.restart()
-                        onClicked: { root.open = false; btn.run() }
-                        Rectangle {
-                            anchors.fill: parent; radius: 7
-                            color: btn.containsMouse ? Theme.accentSoft : "transparent"
-                        }
-                        Icon {
-                            anchors.centerIn: parent
-                            name: btn.icon
-                            color: btn.containsMouse && btn.tint === Theme.muted ? Theme.text : btn.tint
-                            implicitWidth: 14; implicitHeight: 14
-                        }
-                    }
-
-                    ActBtn { icon: "lock";    run: () => Quickshell.execDetached(["hyprlock"]) }
-                    ActBtn { icon: "moon";    run: () => Quickshell.execDetached(["systemctl", "suspend"]) }
-                    ActBtn { icon: "restart"; run: () => Quickshell.execDetached(["systemctl", "reboot"]) }
-                    ActBtn { icon: "power"; tint: Theme.critical
-                             run: () => Quickshell.execDetached(["systemctl", "poweroff"]) }
-                }
+            opacity: root.open ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
+            transform: Translate {
+                y: root.open ? 0 : -6
+                Behavior on y { NumberAnimation { duration: 150; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
             }
 
-            // Кнопка питания
-            MouseArea {
-                id: powerMa
-                anchors.verticalCenter: parent.verticalCenter
-                width: 22; height: 22
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                acceptedButtons: Qt.LeftButton | Qt.RightButton
-                onEntered: hideT.stop()
-                onExited: if (root.open) hideT.restart()
-                onClicked: (e) => {
-                    if (e.button === Qt.RightButton) Quickshell.execDetached(["wlogout"])
-                    else root.open = !root.open
+            Row {
+                id: actRow
+                anchors.centerIn: parent
+                spacing: 6
+
+                component ActBtn: Rectangle {
+                    property string icon
+                    property color tint: Theme.muted
+                    property string label
+                    property var run
+                    width: 36; height: 36; radius: 9
+                    color: bma.containsMouse ? Theme.accentSoft : Qt.rgba(221/255, 228/255, 236/255, 0.04)
+                    Icon {
+                        anchors.centerIn: parent
+                        name: parent.icon
+                        color: bma.containsMouse ? (parent.tint === Theme.muted ? Theme.text : parent.tint) : parent.tint
+                        implicitWidth: 17; implicitHeight: 17
+                    }
+                    MouseArea {
+                        id: bma
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: { root.open = false; parent.run() }
+                    }
                 }
-                // Открыто → крестик «свернуть» (⏻ уже есть среди действий, не дублируем)
-                Icon {
-                    anchors.centerIn: parent
-                    name: root.open ? "close" : "power"
-                    color: root.open ? Theme.muted
-                         : (powerMa.containsMouse ? Theme.critical : Theme.muted)
-                }
+
+                ActBtn { icon: "lock";    label: "Блокировка"; run: () => Quickshell.execDetached(["hyprlock"]) }
+                ActBtn { icon: "moon";    label: "Сон";        run: () => Quickshell.execDetached(["systemctl", "suspend"]) }
+                ActBtn { icon: "restart"; label: "Ребут";      run: () => Quickshell.execDetached(["systemctl", "reboot"]) }
+                ActBtn { icon: "power";   label: "Выключить";  tint: Theme.critical
+                         run: () => Quickshell.execDetached(["systemctl", "poweroff"]) }
             }
         }
     }
