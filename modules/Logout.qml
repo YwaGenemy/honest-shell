@@ -40,7 +40,7 @@ Pill {
         Rectangle {
             id: card
             x: 12; y: 4
-            width: 44
+            width: 40
             height: actCol.implicitHeight + 12
             radius: 13
             color: Theme.surfaceHi
@@ -81,11 +81,12 @@ Pill {
                     }
                 }
 
-                ActBtn { icon: "lock";    run: () => Quickshell.execDetached(["hyprlock"]) }
-                ActBtn { icon: "moon";    run: () => Quickshell.execDetached(["systemctl", "suspend"]) }
-                ActBtn { icon: "restart"; run: () => Quickshell.execDetached(["systemctl", "reboot"]) }
+                // Порядок сверху вниз: выключение (у капсулы) → ребут → сон → блокировка
                 ActBtn { icon: "power";   tint: Theme.critical
                          run: () => Quickshell.execDetached(["systemctl", "poweroff"]) }
+                ActBtn { icon: "restart"; run: () => Quickshell.execDetached(["systemctl", "reboot"]) }
+                ActBtn { icon: "moon";    run: () => Quickshell.execDetached(["systemctl", "suspend"]) }
+                ActBtn { icon: "lock";    run: () => Quickshell.execDetached(["hyprlock"]) }
             }
         }
     }
