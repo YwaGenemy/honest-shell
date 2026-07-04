@@ -18,8 +18,9 @@ Pill {
     onOpenChanged: root.open ? EscClose.acquire() : EscClose.release()
     Connections { target: EscClose; function onPressed() { root.open = false } }
 
+    // При открытии — крестик (⏻ живёт только в меню, не дублируется)
     Icon {
-        name: "power"
+        name: root.open ? "close" : "power"
         color: root.open || root.hovered ? Theme.critical : Theme.muted
     }
 
@@ -35,11 +36,12 @@ Pill {
         anchor.gravity: Edges.Bottom
         anchor.margins.top: 8
 
+        // Узкая капсула, раскрывающаяся ВНИЗ столбцом действий
         Rectangle {
             id: card
             x: 12; y: 4
-            width: actRow.implicitWidth + 20
-            height: 48
+            width: 44
+            height: actCol.implicitHeight + 12
             radius: 13
             color: Theme.surfaceHi
             border.width: 1
@@ -52,17 +54,17 @@ Pill {
                 Behavior on y { NumberAnimation { duration: 150; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
             }
 
-            Row {
-                id: actRow
-                anchors.centerIn: parent
-                spacing: 6
+            Column {
+                id: actCol
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 6
+                spacing: 4
 
                 component ActBtn: Rectangle {
                     property string icon
                     property color tint: Theme.muted
-                    property string label
                     property var run
-                    width: 36; height: 36; radius: 9
+                    width: 32; height: 32; radius: 9
                     color: bma.containsMouse ? Theme.accentSoft : Qt.rgba(221/255, 228/255, 236/255, 0.04)
                     Icon {
                         anchors.centerIn: parent
@@ -79,10 +81,10 @@ Pill {
                     }
                 }
 
-                ActBtn { icon: "lock";    label: "Блокировка"; run: () => Quickshell.execDetached(["hyprlock"]) }
-                ActBtn { icon: "moon";    label: "Сон";        run: () => Quickshell.execDetached(["systemctl", "suspend"]) }
-                ActBtn { icon: "restart"; label: "Ребут";      run: () => Quickshell.execDetached(["systemctl", "reboot"]) }
-                ActBtn { icon: "power";   label: "Выключить";  tint: Theme.critical
+                ActBtn { icon: "lock";    run: () => Quickshell.execDetached(["hyprlock"]) }
+                ActBtn { icon: "moon";    run: () => Quickshell.execDetached(["systemctl", "suspend"]) }
+                ActBtn { icon: "restart"; run: () => Quickshell.execDetached(["systemctl", "reboot"]) }
+                ActBtn { icon: "power";   tint: Theme.critical
                          run: () => Quickshell.execDetached(["systemctl", "poweroff"]) }
             }
         }
