@@ -26,16 +26,23 @@ Singleton {
 
     // Слежение за буфером: wl-paste --watch печатает строку при каждом изменении.
     // Пока попап открыт (live) — обновляем список с небольшой задержкой, чтобы
-    // cliphist успел сохранить новую запись.
+    // cliphist успел сохранить новую запись. НО если изменение — наша же копия
+    // (клик по записи), список не трогаем: иначе запись «прыгает» наверх.
+    property bool _selfCopy: false
+    Timer { id: selfCopyT; interval: 600; onTriggered: root._selfCopy = false }
     Timer { id: debounce; interval: 200; onTriggered: root.refresh() }
     Process {
         running: true
         command: ["wl-paste", "--watch", "echo"]
-        stdout: SplitParser { onRead: if (root.live) debounce.restart() }
+        stdout: SplitParser { onRead: {
+            if (root._selfCopy) { root._selfCopy = false; selfCopyT.stop(); return }
+            if (root.live) debounce.restart()
+        }}
     }
 
-    // Вернуть запись в буфер обмена
+    // Вернуть запись в буфер обмена (наша копия — подавляем авто-обновление списка)
     function copy(id) {
+        _selfCopy = true; selfCopyT.restart()
         Quickshell.execDetached(["sh", "-c", "cliphist decode " + id + " | wl-copy"])
     }
     // Удалить запись из истории
