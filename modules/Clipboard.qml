@@ -217,14 +217,7 @@ Pill {
                     cellHeight: 138
                     model: Clipboard.images
                     boundsBehavior: Flickable.StopAtBounds
-                    // Скролл только колесом — перетаскивание отдаём драгу картинок
-                    interactive: false
                     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-                    WheelHandler {
-                        onWheel: (e) => imgGrid.contentY = Math.max(0,
-                            Math.min(Math.max(0, imgGrid.contentHeight - imgGrid.height),
-                                     imgGrid.contentY - e.angleDelta.y))
-                    }
 
                     delegate: Item {
                         id: imgCell
@@ -262,7 +255,7 @@ Pill {
                         }
 
                         HoverHandler { id: imgHover; cursorShape: Qt.PointingHandCursor }
-                        DragHandler { id: imgDrag; target: null }   // тащим — не двигая ячейку
+                        DragHandler { id: imgDrag; target: null; grabPermissions: PointerHandler.CanTakeOverFromAnything }
                         TapHandler {
                             acceptedButtons: Qt.LeftButton | Qt.RightButton
                             onSingleTapped: (ev, btn) => {
@@ -290,14 +283,7 @@ Pill {
                     spacing: 5
                     model: Clipboard.texts
                     boundsBehavior: Flickable.StopAtBounds
-                    // Скролл только колесом — перетаскивание отдаём драгу текста
-                    interactive: false
                     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-                    WheelHandler {
-                        onWheel: (e) => txtList.contentY = Math.max(0,
-                            Math.min(Math.max(0, txtList.contentHeight - txtList.height),
-                                     txtList.contentY - e.angleDelta.y))
-                    }
 
                     delegate: Rectangle {
                         id: clip
@@ -332,7 +318,7 @@ Pill {
                         }
 
                         HoverHandler { id: txtHover; cursorShape: Qt.PointingHandCursor }
-                        DragHandler { id: txtDrag; target: null }
+                        DragHandler { id: txtDrag; target: null; grabPermissions: PointerHandler.CanTakeOverFromAnything }
                         TapHandler {
                             acceptedButtons: Qt.LeftButton | Qt.RightButton
                             onSingleTapped: (ev, btn) => {
