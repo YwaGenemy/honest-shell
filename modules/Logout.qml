@@ -2,6 +2,7 @@
 // ПКМ — wlogout. Меню не распихивает соседние пины: оно в отдельном попапе.
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
 import "root:/"
 import "root:/components"
 
@@ -24,17 +25,29 @@ Pill {
         color: root.open || root.hovered ? Theme.critical : Theme.muted
     }
 
-    // Выпадающее меню под кнопкой
-    PopupWindow {
+    // Выпадающее меню — слой-окно, привязанное к правому краю (там же правый край
+    // пилюли). Так меню встаёт ТОЧНО под кнопкой ⏻, не уезжает вбок.
+    PanelWindow {
         id: pop
         visible: root.open && root.panelWindow !== undefined
+        screen: root.panelWindow ? root.panelWindow.screen : null
         color: "transparent"
+
+        WlrLayershell.namespace: "quickshell:powermenu"
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+        exclusiveZone: 0
+
+        anchors { top: true; right: true }
+        // margin.right = barMargin − 12: карточка (с 12px тени слева/справа) правым
+        // краем совпадёт с правым краем пилюли.
+        margins {
+            top: Theme.barMarginTop + Theme.barHeight + 4
+            right: Theme.barMargin - 12
+        }
         implicitWidth: card.width + 24
         implicitHeight: card.height + 20
-        anchor.item: root
-        anchor.edges: Edges.Bottom
-        anchor.gravity: Edges.Bottom
-        anchor.margins.top: 8
+        mask: Region { item: card }
 
         // Узкая капсула, раскрывающаяся ВНИЗ столбцом действий
         Rectangle {
