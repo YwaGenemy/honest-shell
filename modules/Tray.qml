@@ -15,7 +15,18 @@ Item {
     property bool ready: false
     Timer { interval: 900; running: true; onTriggered: root.ready = true }
 
-    visible: SystemTray.items.values.length > 0
+    // Счётчик обновляем по сигналу valuesChanged — биндинг на .values.length
+    // не реактивен к асинхронному добавлению элементов трея (важно при чистом старте,
+    // когда апплеты регистрируются уже ПОСЛЕ создания панели).
+    property int count: 0
+    function _sync() { count = SystemTray.items.values.length }
+    Component.onCompleted: _sync()
+    Connections { target: SystemTray.items; function onValuesChanged() { root._sync() } }
+    // Подстраховка от гонки: апплеты трея иногда регистрируются позже, а сигнал
+    // valuesChanged до live-инстанса не всегда долетает — синхронизируем и по таймеру.
+    Timer { interval: 1500; running: true; repeat: true; onTriggered: root._sync() }
+
+    visible: count > 0
     implicitWidth: visible ? bg.implicitWidth : 0
     implicitHeight: Theme.pillHeight
     Behavior on implicitWidth {

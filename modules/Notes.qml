@@ -6,7 +6,6 @@ import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
-import Quickshell.Hyprland
 import "root:/"
 import "root:/components"
 
@@ -30,20 +29,16 @@ Pill {
     // Автосохранение с задержкой, чтобы не писать на каждую букву
     Timer { id: saveT; interval: 500; onTriggered: file.setText(area.text) }
 
-    // Esc откуда угодно, пока попап открыт (как в буфере) — не блокируя мышь
-    GlobalShortcut {
-        name: "notesEsc"
-        description: "Закрыть заметки"
-        onPressed: root.popup = false
-    }
+    // Esc откуда угодно закрывает — единая логика попапов
+    Connections { target: EscClose; function onPressed() { root.popup = false } }
     onPopupChanged: {
         if (popup) {
             area.text = file.text()
-            Quickshell.execDetached(["hyprctl", "keyword", "bind", ",escape,global,quickshell:notesEsc"])
             area.forceActiveFocus()
+            EscClose.acquire()
         } else {
             file.setText(area.text)        // финальное сохранение
-            Quickshell.execDetached(["hyprctl", "keyword", "unbind", ",escape"])
+            EscClose.release()
         }
     }
 

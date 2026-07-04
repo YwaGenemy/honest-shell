@@ -6,7 +6,6 @@ import QtQuick.Controls
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Hyprland
 import "root:/"
 import "root:/components"
 
@@ -21,20 +20,9 @@ Pill {
     // Пока попап открыт — буфер обновляется на лету (новые скриншоты появляются сразу)
     Binding { target: Clipboard; property: "live"; value: root.popup }
 
-    // Esc откуда угодно, не блокируя мышь: вешаем ГЛОБАЛЬНЫЙ бинд Escape только пока
-    // попап открыт (мышь свободна — попап не захватывает клавиатуру). При закрытии
-    // снимаем — Escape в приложениях снова обычный.
-    GlobalShortcut {
-        name: "clipboardEsc"
-        description: "Закрыть буфер обмена"
-        onPressed: root.popup = false
-    }
-    onPopupChanged: {
-        if (popup)
-            Quickshell.execDetached(["hyprctl", "keyword", "bind", ",escape,global,quickshell:clipboardEsc"])
-        else
-            Quickshell.execDetached(["hyprctl", "keyword", "unbind", ",escape"])
-    }
+    // Esc откуда угодно закрывает (мышь свободна) — единая логика для всех попапов
+    onPopupChanged: root.popup ? EscClose.acquire() : EscClose.release()
+    Connections { target: EscClose; function onPressed() { root.popup = false } }
 
     // Подскок масштаба во время вспышки (множится со scale пилюли из Pill)
     property real flashScale: 1.0

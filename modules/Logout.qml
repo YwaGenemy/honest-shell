@@ -14,6 +14,9 @@ Pill {
 
     onClicked: open = !open
     onRightClicked: Quickshell.execDetached(["wlogout"])
+    // Esc откуда угодно закрывает — единая логика попапов
+    onOpenChanged: root.open ? EscClose.acquire() : EscClose.release()
+    Connections { target: EscClose; function onPressed() { root.open = false } }
 
     Icon {
         name: "power"
@@ -24,8 +27,6 @@ Pill {
     PopupWindow {
         id: pop
         visible: root.open && root.panelWindow !== undefined
-        grabFocus: true                              // клик мимо — закрыть
-        onVisibleChanged: if (!visible) root.open = false
         color: "transparent"
         implicitWidth: card.width + 24
         implicitHeight: card.height + 20

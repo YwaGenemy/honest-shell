@@ -6,7 +6,6 @@ import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Hyprland
 import "root:/"
 import "root:/components"
 
@@ -20,18 +19,9 @@ Pill {
 
     Icon { name: "sliders"; color: root.popup ? Theme.accent : Theme.muted }
 
-    // Esc откуда угодно, пока попап открыт (мышь свободна)
-    GlobalShortcut {
-        name: "constructorEsc"
-        description: "Закрыть конструктор"
-        onPressed: root.popup = false
-    }
-    onPopupChanged: {
-        if (popup)
-            Quickshell.execDetached(["hyprctl", "keyword", "bind", ",escape,global,quickshell:constructorEsc"])
-        else
-            Quickshell.execDetached(["hyprctl", "keyword", "unbind", ",escape"])
-    }
+    // Esc откуда угодно закрывает — единая логика попапов
+    onPopupChanged: root.popup ? EscClose.acquire() : EscClose.release()
+    Connections { target: EscClose; function onPressed() { root.popup = false } }
 
     PanelWindow {
         id: pop

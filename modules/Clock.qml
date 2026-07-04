@@ -22,6 +22,9 @@ Pill {
     SystemClock { id: clock; precision: SystemClock.Minutes }
 
     onClicked: { popup = !popup; if (popup) monthOff = 0 }
+    // Esc откуда угодно закрывает — единая логика попапов
+    onPopupChanged: root.popup ? EscClose.acquire() : EscClose.release()
+    Connections { target: EscClose; function onPressed() { root.popup = false } }
 
     Icon { name: "clock"; color: Theme.muted }
     Text {
