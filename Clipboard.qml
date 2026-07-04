@@ -20,6 +20,10 @@ Singleton {
 
     function refresh() { listProc.running = true }
 
+    // Вспышка капсулы (вызывается по IPC после скриншота) + обновление истории
+    signal flashed()
+    function flash() { refresh(); flashed() }
+
     // Слежение за буфером: wl-paste --watch печатает строку при каждом изменении.
     // Пока попап открыт (live) — обновляем список с небольшой задержкой, чтобы
     // cliphist успел сохранить новую запись.

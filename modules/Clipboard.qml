@@ -20,7 +20,28 @@ Pill {
     // Пока попап открыт — буфер обновляется на лету (новые скриншоты появляются сразу)
     Binding { target: Clipboard; property: "live"; value: root.popup }
 
-    Icon { name: "clipboard"; color: root.popup ? Theme.accent : Theme.muted }
+    Icon { name: "clipboard"; color: root.popup || flashOverlay.opacity > 0.05 ? Theme.accent : Theme.muted }
+
+    // Яркая вспышка капсулы на ~1с после скриншота (сигнал Clipboard.flashed).
+    // parent: root — оверлей поверх всей пилюли (иначе ушёл бы в контент-ряд).
+    Rectangle {
+        id: flashOverlay
+        parent: root
+        anchors.fill: root
+        radius: Theme.pillRadius
+        color: Theme.accent
+        opacity: 0
+        z: 10
+        Connections {
+            target: Clipboard
+            function onFlashed() { flashAnim.restart() }
+        }
+        SequentialAnimation {
+            id: flashAnim
+            NumberAnimation { target: flashOverlay; property: "opacity"; to: 0.65; duration: 80; easing.type: Easing.OutCubic }
+            NumberAnimation { target: flashOverlay; property: "opacity"; to: 0;    duration: 950; easing.type: Easing.OutCubic }
+        }
+    }
 
     // Слой-окно вместо PopupWindow: keyboardFocus OnDemand + маска на карточку —
     // клики мимо карточки проходят в окна под ней (дисплей не блокируется),
