@@ -17,6 +17,8 @@ Pill {
     tooltip: "Буфер обмена"
 
     onClicked: { popup = !popup; if (popup) Clipboard.refresh() }
+    // Пока попап открыт — буфер обновляется на лету (новые скриншоты появляются сразу)
+    Binding { target: Clipboard; property: "live"; value: root.popup }
 
     Icon { name: "clipboard"; color: root.popup ? Theme.accent : Theme.muted }
 
@@ -34,11 +36,9 @@ Pill {
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
         exclusiveZone: 0
 
-        anchors { top: true; left: true }
-        margins {
-            left: Math.round(root.mapToItem(null, 0, 0).x) + Theme.barMargin
-            top: Theme.barMarginTop + Theme.barHeight + 4
-        }
+        // Только top → компоновщик центрирует по горизонтали (под воркспейсами)
+        anchors { top: true }
+        margins { top: Theme.barMarginTop + Theme.barHeight + 4 }
         implicitWidth: card.width + 24
         implicitHeight: card.height + 20
 
@@ -55,7 +55,7 @@ Pill {
         Rectangle {
             id: card
             x: 12; y: 4
-            width: 400
+            width: 760
             height: col.implicitHeight + 20
             radius: 14
             color: Theme.surfaceHi
@@ -134,14 +134,14 @@ Pill {
 
                 Rectangle { width: parent.width; height: 1; color: Theme.border }
 
-                // ── Картинки: крупная сетка 2-в-ряд ──
+                // ── Картинки: широкая сетка 4-в-ряд ──
                 GridView {
                     width: parent.width
                     visible: root.showImages
-                    height: visible ? Math.min(Math.ceil(Math.max(Clipboard.images.length, 1) / 2) * 130, 470) : 0
+                    height: visible ? Math.min(Math.ceil(Math.max(Clipboard.images.length, 1) / 4) * 138, 300) : 0
                     clip: true
-                    cellWidth: width / 2
-                    cellHeight: 130
+                    cellWidth: width / 4
+                    cellHeight: 138
                     model: Clipboard.images
                     boundsBehavior: Flickable.StopAtBounds
                     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
@@ -198,7 +198,7 @@ Pill {
                 ListView {
                     width: parent.width
                     visible: !root.showImages
-                    height: visible ? Math.min(Math.max(Clipboard.texts.length, 1) * 54, 470) : 0
+                    height: visible ? Math.min(Math.max(Clipboard.texts.length, 1) * 54, 300) : 0
                     clip: true
                     spacing: 5
                     model: Clipboard.texts

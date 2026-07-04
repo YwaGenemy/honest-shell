@@ -11,6 +11,7 @@ Singleton {
     readonly property string home: Quickshell.env("HOME")
     readonly property string cacheDir: home + "/.cache/honest-clip"
     readonly property int limit: 50            // сколько последних записей показывать
+    property bool live: false                  // авто-обновление (пока попап открыт)
 
     // [{ id, isImage, text, dims, thumb }]
     property var entries: []
@@ -18,6 +19,16 @@ Singleton {
     readonly property var texts:  entries.filter(e => !e.isImage)
 
     function refresh() { listProc.running = true }
+
+    // Слежение за буфером: wl-paste --watch печатает строку при каждом изменении.
+    // Пока попап открыт (live) — обновляем список с небольшой задержкой, чтобы
+    // cliphist успел сохранить новую запись.
+    Timer { id: debounce; interval: 200; onTriggered: root.refresh() }
+    Process {
+        running: true
+        command: ["wl-paste", "--watch", "echo"]
+        stdout: SplitParser { onRead: if (root.live) debounce.restart() }
+    }
 
     // Вернуть запись в буфер обмена
     function copy(id) {
