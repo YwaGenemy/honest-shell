@@ -117,7 +117,7 @@ Pill {
 
         // Только top → компоновщик центрирует по горизонтали (под воркспейсами)
         anchors { top: true }
-        margins { top: Theme.barMarginTop + Theme.barHeight + 4 }
+        margins { top: 4 }
         implicitWidth: card.width + 24
         implicitHeight: card.height + 20
 

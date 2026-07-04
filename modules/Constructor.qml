@@ -35,7 +35,7 @@ Pill {
         exclusiveZone: 0
 
         anchors { top: true; right: true }
-        margins { top: Theme.barMarginTop + Theme.barHeight + 4; right: Theme.barMargin }
+        margins { top: 4; right: Theme.barMargin }
         implicitWidth: card.width + 24
         implicitHeight: card.height + 20
         mask: Region { item: card }

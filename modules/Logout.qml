@@ -41,8 +41,10 @@ Pill {
         anchors { top: true; right: true }
         // margin.right = barMargin − 12: карточка (с 12px тени слева/справа) правым
         // краем совпадёт с правым краем пилюли.
+        // Панель резервирует свою высоту (exclusive zone), поэтому отсчёт top уже
+        // идёт от НИЗА панели — нужен только маленький зазор, без barHeight.
         margins {
-            top: Theme.barMarginTop + Theme.barHeight + 4
+            top: 4
             right: Theme.barMargin - 12
         }
         implicitWidth: card.width + 24

@@ -56,7 +56,7 @@ Pill {
         // Под кнопкой заметок (правая зона) — прижато к правому краю
         anchors { top: true; right: true }
         margins {
-            top: Theme.barMarginTop + Theme.barHeight + 4
+            top: 4
             right: Theme.barMargin
         }
         implicitWidth: card.width + 24
