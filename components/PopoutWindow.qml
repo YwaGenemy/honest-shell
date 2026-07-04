@@ -45,13 +45,19 @@ PopupWindow {
              : n === "net" ? netC : null
     }
 
+    // Фиксированная ширина контента по типу — ColumnLayout сам считает ширину
+    // от детей, и она «плавает» с приходом асинхронных данных; задаём явно.
+    readonly property var _cw: ({ volume: 230, battery: 215, media: 250, cpu: 250, gpu: 245, net: 235 })
+
     function morph() {
         const nm = Popouts.name
         if (nm === "") return
         const incoming = useA ? lb : la      // скрытый лоадер
         const outgoing = useA ? la : lb
         incoming.sourceComponent = compFor(nm)
-        const w = (incoming.item ? incoming.item.implicitWidth : 200) + card.pad * 2
+        const cw = _cw[nm] ?? 220
+        if (incoming.item) incoming.item.width = cw   // фиксируем ширину контента
+        const w = cw + card.pad * 2
         const h = (incoming.item ? incoming.item.implicitHeight : 60) + card.pad * 2
         const tx = Math.max(8, Math.min(Popouts.anchorX - w / 2, win.implicitWidth - w - 8))
 
@@ -287,8 +293,22 @@ PopupWindow {
         id: gpuC
         ColumnLayout {
             spacing: 7
-            implicitWidth: 235
+            implicitWidth: 245
             readonly property real vramFrac: SysInfo.gpuVramTotal > 0 ? SysInfo.gpuVramUsed / SysInfo.gpuVramTotal : 0
+            readonly property real gttFrac: SysInfo.gpuGttTotal > 0 ? SysInfo.gpuGttUsed / SysInfo.gpuGttTotal : 0
+
+            // Мини-полоса памяти (переиспользуется для VRAM и GTT)
+            component MemBar: Item {
+                property real frac: 0
+                property color fill: Theme.layout
+                Layout.fillWidth: true; implicitHeight: 5
+                Rectangle { anchors.fill: parent; radius: 2.5; color: Qt.rgba(221/255, 228/255, 236/255, 0.1) }
+                Rectangle {
+                    width: parent.width * Math.min(1, parent.frac); height: parent.height; radius: 2.5
+                    color: parent.frac >= 0.9 ? Theme.warning : parent.fill
+                    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
+                }
+            }
 
             Text { text: "Radeon (5700U)"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize; font.bold: true }
 
@@ -305,19 +325,14 @@ PopupWindow {
             InfoRow { k: "Загрузка"; v: SysInfo.gpuBusy + "%" }
             InfoRow { k: "Температура"; v: SysInfo.gpuTemp + " °C"; vc: SysInfo.gpuTemp >= 85 ? Theme.critical : SysInfo.gpuTemp >= 70 ? Theme.warning : Theme.text }
             InfoRow { k: "Частота"; v: Math.round(SysInfo.gpuFreq) + " МГц" }
-
-            // VRAM полоса
-            InfoRow { k: "VRAM"; v: Math.round(SysInfo.gpuVramUsed) + " / " + Math.round(SysInfo.gpuVramTotal) + " МБ" }
-            Item {
-                Layout.fillWidth: true; height: 5
-                Rectangle { anchors.fill: parent; radius: 2.5; color: Qt.rgba(221/255, 228/255, 236/255, 0.1) }
-                Rectangle {
-                    width: parent.width * Math.min(1, parent.parent.vramFrac); height: parent.height; radius: 2.5
-                    color: parent.parent.vramFrac >= 0.9 ? Theme.warning : Theme.layout
-                    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
-                }
-            }
             InfoRow { k: "Напряжение"; v: SysInfo.gpuVolt.toFixed(3) + " В" }
+
+            // Выделенная видеопамять (carveout из BIOS)
+            InfoRow { k: "VRAM (своя)"; v: Math.round(SysInfo.gpuVramUsed) + " / " + Math.round(SysInfo.gpuVramTotal) + " МБ" }
+            MemBar { frac: parent.vramFrac; fill: Theme.layout }
+            // Подкачка из ОЗУ (GTT)
+            InfoRow { k: "GTT (из ОЗУ)"; v: (SysInfo.gpuGttUsed / 1024).toFixed(1) + " / " + (SysInfo.gpuGttTotal / 1024).toFixed(1) + " ГБ" }
+            MemBar { frac: parent.gttFrac; fill: Theme.accent }
         }
     }
 
@@ -326,21 +341,35 @@ PopupWindow {
         id: netC
         ColumnLayout {
             property string iface: "…"
-            property string totals: "…"
+            property real rxBytes: 0
+            property real txBytes: 0
             spacing: 7
             implicitWidth: 235
 
+            // Адаптивные единицы: КБ → МБ → ГБ → ТБ
+            function human(b) {
+                if (b >= 1099511627776) return (b / 1099511627776).toFixed(2) + " ТБ"
+                if (b >= 1073741824)   return (b / 1073741824).toFixed(2) + " ГБ"
+                if (b >= 1048576)      return (b / 1048576).toFixed(0) + " МБ"
+                return (b / 1024).toFixed(0) + " КБ"
+            }
+
             Process { id: iP; command: ["sh", "-c", "ip -o -4 route get 1.1.1.1 2>/dev/null | awk '{print $5\" \"$7}'"]
                 stdout: StdioCollector { onStreamFinished: iface = ("" + text).trim() || "нет соединения" } }
-            Process { id: tP2; command: ["sh", "-c", "awk -F'[: ]+' 'NR>2 && $2!=\"lo\" {rx+=$3; tx+=$11} END {printf \"%.1f|%.1f\", rx/1073741824, tx/1073741824}' /proc/net/dev"]
-                stdout: StdioCollector { onStreamFinished: totals = ("" + text).trim() } }
-            Component.onCompleted: { iP.running = true; tP2.running = true }
+            Process { id: tP2; command: ["sh", "-c", "awk 'NR>2{gsub(/^ +/,\"\"); split($0,a,/[: ]+/); if(a[1]!=\"lo\"){rx+=a[2]; tx+=a[10]}} END{printf \"%d|%d\", rx, tx}' /proc/net/dev"]
+                stdout: StdioCollector { onStreamFinished: {
+                    const p = ("" + text).trim().split("|")
+                    rxBytes = parseFloat(p[0]) || 0
+                    txBytes = parseFloat(p[1]) || 0
+                } } }
+            Timer { interval: 2000; running: true; repeat: true; triggeredOnStart: true
+                onTriggered: { iP.running = true; tP2.running = true } }
 
             Text { text: "Сеть"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize; font.bold: true }
             InfoRow { k: "Интерфейс"; v: (iface + " ").split(" ")[0] }
             InfoRow { k: "IP"; v: (iface + "  ").split(" ")[1] || "—" }
-            InfoRow { k: "Принято"; v: (totals.split("|")[0] || "0") + " ГБ" }
-            InfoRow { k: "Отдано"; v: (totals.split("|")[1] || "0") + " ГБ" }
+            InfoRow { k: "Принято ↓"; v: parent.human(parent.rxBytes) }
+            InfoRow { k: "Отдано ↑"; v: parent.human(parent.txBytes) }
         }
     }
 

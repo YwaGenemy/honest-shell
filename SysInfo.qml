@@ -23,8 +23,10 @@ Singleton {
     readonly property string gpuPath: "/sys/devices/pci0000:00/0000:00:08.1/0000:03:00.0"
     property int  gpuTemp: 0           // °C
     property int  gpuBusy: 0           // %
-    property real gpuVramUsed: 0       // МБ
+    property real gpuVramUsed: 0       // МБ — выделенная (carveout из BIOS)
     property real gpuVramTotal: 0      // МБ
+    property real gpuGttUsed: 0        // МБ — подкачка из ОЗУ (GTT)
+    property real gpuGttTotal: 0       // МБ
     property real gpuFreq: 0           // МГц (sclk)
     property real gpuVolt: 0           // В
 
@@ -76,6 +78,8 @@ Singleton {
             "echo GBSY $(cat $G/gpu_busy_percent 2>/dev/null);" +
             "echo GVU $(cat $G/mem_info_vram_used 2>/dev/null);" +
             "echo GVT $(cat $G/mem_info_vram_total 2>/dev/null);" +
+            "echo GGU $(cat $G/mem_info_gtt_used 2>/dev/null);" +
+            "echo GGT $(cat $G/mem_info_gtt_total 2>/dev/null);" +
             "echo GFRQ $(cat $G/hwmon/hwmon*/freq1_input 2>/dev/null);" +
             "echo GVLT $(cat $G/hwmon/hwmon*/in0_input 2>/dev/null)"]
         stdout: StdioCollector { onStreamFinished: {
@@ -90,6 +94,8 @@ Singleton {
                 case "GBSY": if (v) root.gpuBusy = parseInt(v); break
                 case "GVU": if (v) root.gpuVramUsed = parseInt(v) / 1048576; break
                 case "GVT": if (v) root.gpuVramTotal = parseInt(v) / 1048576; break
+                case "GGU": if (v) root.gpuGttUsed = parseInt(v) / 1048576; break
+                case "GGT": if (v) root.gpuGttTotal = parseInt(v) / 1048576; break
                 case "GFRQ": if (v) root.gpuFreq = parseInt(v) / 1e6; break
                 case "GVLT": if (v) root.gpuVolt = parseInt(v) / 1000; break
                 }
