@@ -258,9 +258,10 @@ Pill {
                         DragHandler { id: imgDrag; target: null; grabPermissions: PointerHandler.CanTakeOverFromAnything }
                         TapHandler {
                             acceptedButtons: Qt.LeftButton | Qt.RightButton
+                            // копирование не закрывает попап — только Esc/повторный клик
                             onSingleTapped: (ev, btn) => {
                                 if (btn === Qt.RightButton) Clipboard.remove(imgCell.modelData.id)
-                                else { Clipboard.copy(imgCell.modelData.id); root.popup = false }
+                                else Clipboard.copy(imgCell.modelData.id)
                             }
                         }
                     }
@@ -321,9 +322,10 @@ Pill {
                         DragHandler { id: txtDrag; target: null; grabPermissions: PointerHandler.CanTakeOverFromAnything }
                         TapHandler {
                             acceptedButtons: Qt.LeftButton | Qt.RightButton
+                            // копирование не закрывает попап — только Esc/повторный клик
                             onSingleTapped: (ev, btn) => {
                                 if (btn === Qt.RightButton) Clipboard.remove(clip.modelData.id)
-                                else { Clipboard.copy(clip.modelData.id); root.popup = false }
+                                else Clipboard.copy(clip.modelData.id)
                             }
                         }
                     }
