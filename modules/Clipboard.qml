@@ -20,26 +20,73 @@ Pill {
     // Пока попап открыт — буфер обновляется на лету (новые скриншоты появляются сразу)
     Binding { target: Clipboard; property: "live"; value: root.popup }
 
-    Icon { name: "clipboard"; color: root.popup || flashOverlay.opacity > 0.05 ? Theme.accent : Theme.muted }
+    // Подскок масштаба во время вспышки (множится со scale пилюли из Pill)
+    property real flashScale: 1.0
+    transform: Scale {
+        origin.x: root.width / 2; origin.y: root.height / 2
+        xScale: root.flashScale; yScale: root.flashScale
+    }
 
-    // Яркая вспышка капсулы на ~1с после скриншота (сигнал Clipboard.flashed).
-    // parent: root — оверлей поверх всей пилюли (иначе ушёл бы в контент-ряд).
+    Icon { name: "clipboard"
+           color: root.popup || flashOverlay.opacity > 0.15 ? (flashOverlay.opacity > 0.15 ? "#0b0d11" : Theme.accent) : Theme.muted }
+
+    // Расходящееся кольцо-«всплеск» позади пилюли — видно даже краем глаза.
+    Rectangle {
+        id: ring
+        parent: root
+        x: 0; y: 0
+        width: root.width; height: root.height
+        radius: Theme.pillRadius
+        color: "transparent"
+        border.width: 2
+        border.color: Theme.accent
+        opacity: 0
+        z: 9
+        transform: Scale {
+            origin.x: ring.width / 2; origin.y: ring.height / 2
+            xScale: ring.sc; yScale: ring.sc
+        }
+        property real sc: 1.0
+    }
+
+    // Яркая вспышка-заливка поверх пилюли (сигнал Clipboard.flashed).
     Rectangle {
         id: flashOverlay
         parent: root
-        anchors.fill: root
+        x: 0; y: 0
+        width: root.width; height: root.height
         radius: Theme.pillRadius
-        color: Theme.accent
+        color: "#dfeaff"          // почти белый с голубым — контраст на тёмной панели
         opacity: 0
         z: 10
+
         Connections {
             target: Clipboard
-            function onFlashed() { flashAnim.restart() }
+            function onFlashed() { flashAnim.restart(); ringAnim.restart() }
         }
+
+        // Двойной пульс заливки + подскок масштаба капсулы
         SequentialAnimation {
             id: flashAnim
-            NumberAnimation { target: flashOverlay; property: "opacity"; to: 0.65; duration: 80; easing.type: Easing.OutCubic }
-            NumberAnimation { target: flashOverlay; property: "opacity"; to: 0;    duration: 950; easing.type: Easing.OutCubic }
+            loops: 2
+            ParallelAnimation {
+                NumberAnimation { target: flashOverlay; property: "opacity"; to: 1.0; duration: 55; easing.type: Easing.OutCubic }
+                NumberAnimation { target: root; property: "flashScale"; to: 1.32; duration: 110; easing.type: Easing.OutBack }
+            }
+            ParallelAnimation {
+                NumberAnimation { target: flashOverlay; property: "opacity"; to: 0.0; duration: 300; easing.type: Easing.OutCubic }
+                NumberAnimation { target: root; property: "flashScale"; to: 1.0; duration: 300; easing.type: Easing.OutCubic }
+            }
+        }
+
+        // Кольцо: разрастается и гаснет
+        SequentialAnimation {
+            id: ringAnim
+            ScriptAction { script: { ring.sc = 1.0; ring.opacity = 0.9 } }
+            ParallelAnimation {
+                NumberAnimation { target: ring; property: "sc";      to: 2.1; duration: 520; easing.type: Easing.OutCubic }
+                NumberAnimation { target: ring; property: "opacity"; to: 0.0; duration: 520; easing.type: Easing.OutCubic }
+            }
         }
     }
 
