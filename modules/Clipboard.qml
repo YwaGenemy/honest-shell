@@ -34,7 +34,7 @@ Pill {
         Rectangle {
             id: card
             x: 12; y: 4
-            width: 330
+            width: 400
             height: col.implicitHeight + 20
             radius: 14
             color: Theme.surfaceHi
@@ -88,9 +88,9 @@ Pill {
                 // Список истории
                 ListView {
                     width: parent.width
-                    height: Math.min(Clipboard.entries.length * 46, 360)
+                    height: Math.min(Math.max(Clipboard.entries.length, 1) * 54, 460)
                     clip: true
-                    spacing: 4
+                    spacing: 5
                     model: Clipboard.entries
                     boundsBehavior: Flickable.StopAtBounds
                     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
@@ -99,19 +99,19 @@ Pill {
                         id: clip
                         required property var modelData
                         width: ListView.view.width
-                        height: 42
-                        radius: 9
+                        height: 49
+                        radius: 10
                         color: itemMa.containsMouse ? Theme.accentSoft : Qt.rgba(221/255, 228/255, 236/255, 0.04)
 
                         Row {
                             anchors.fill: parent
-                            anchors.leftMargin: 8; anchors.rightMargin: 6
-                            spacing: 9
+                            anchors.leftMargin: 9; anchors.rightMargin: 8
+                            spacing: 11
 
                             // Превью: картинка или иконка типа
                             Item {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 48; height: 34
+                                width: 60; height: 40
                                 Image {
                                     visible: clip.modelData.isImage
                                     anchors.fill: parent
@@ -122,19 +122,19 @@ Pill {
                                 Icon {
                                     visible: !clip.modelData.isImage
                                     anchors.centerIn: parent; name: "note"
-                                    color: Theme.muted; implicitWidth: 16; implicitHeight: 16
+                                    color: Theme.muted; implicitWidth: 18; implicitHeight: 18
                                 }
                             }
 
                             // Текст / описание картинки
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: parent.width - 48 - 9 - 6
+                                width: parent.width - 60 - 11 - 8
                                 text: clip.modelData.isImage
                                       ? ("Картинка  " + clip.modelData.dims)
                                       : clip.modelData.text
                                 color: Theme.text
-                                font.family: Theme.font; font.pixelSize: Theme.fontSize - 1
+                                font.family: Theme.font; font.pixelSize: Theme.fontSize
                                 elide: Text.ElideRight; maximumLineCount: 2; wrapMode: Text.Wrap
                             }
                         }

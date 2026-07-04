@@ -47,6 +47,7 @@ PanelWindow {
             GpuTemp       { panelWindow: bar }
             NetSpeed      { panelWindow: bar }
             PowerProfile  { panelWindow: bar }
+            Clipboard     { panelWindow: bar }
         }
 
         // ЦЕНТР
@@ -69,7 +70,6 @@ PanelWindow {
             Volume  { panelWindow: bar }
             Battery { panelWindow: bar }
             Clock     { panelWindow: bar }
-            Clipboard { panelWindow: bar }
             Notes     { panelWindow: bar }
             Logout    { panelWindow: bar }
         }
