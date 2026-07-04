@@ -63,6 +63,7 @@ PanelWindow {
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.groupGap
             Privacy { panelWindow: bar }
+            Updates { panelWindow: bar }
             Media   { panelWindow: bar }
             Tray    { panelWindow: bar }
             Volume  { panelWindow: bar }

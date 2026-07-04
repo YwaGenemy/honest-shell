@@ -5,4 +5,5 @@ singleton WsUsage WsUsage.qml
 singleton Icons Icons.qml
 singleton Popouts Popouts.qml
 singleton SysInfo SysInfo.qml
+singleton Updates Updates.qml
 Bar Bar.qml

@@ -30,6 +30,7 @@ QtObject {
         pause: "<path d='M5.7 3.5v9M10.3 3.5v9'/>",
         next: "<path d='M4 3.5 10 8l-6 4.5zM12 3.5v9'/>",
         prev: "<path d='M12 3.5 6 8l6 4.5zM4 3.5v9'/>",
-        close: "<path d='M4.5 4.5l7 7M11.5 4.5l-7 7'/>"
+        close: "<path d='M4.5 4.5l7 7M11.5 4.5l-7 7'/>",
+        update: "<path d='M13.5 3.5v3h-3'/><path d='M13 6.2A5.2 5.2 0 1 0 13.4 10'/><path d='M8 5.2v3l2 1.3'/>"
     })
 }

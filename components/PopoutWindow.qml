@@ -42,12 +42,13 @@ PopupWindow {
              : n === "media" ? mediaC
              : n === "cpu" ? cpuC
              : n === "gpu" ? gpuC
-             : n === "net" ? netC : null
+             : n === "net" ? netC
+             : n === "updates" ? updatesC : null
     }
 
     // Фиксированная ширина контента по типу — ColumnLayout сам считает ширину
     // от детей, и она «плавает» с приходом асинхронных данных; задаём явно.
-    readonly property var _cw: ({ volume: 230, battery: 215, media: 250, cpu: 250, gpu: 245, net: 235 })
+    readonly property var _cw: ({ volume: 230, battery: 215, media: 250, cpu: 250, gpu: 245, net: 235, updates: 275 })
 
     function morph() {
         const nm = Popouts.name
@@ -370,6 +371,59 @@ PopupWindow {
             InfoRow { k: "IP"; v: (iface + "  ").split(" ")[1] || "—" }
             InfoRow { k: "Принято ↓"; v: parent.human(parent.rxBytes) }
             InfoRow { k: "Отдано ↑"; v: parent.human(parent.txBytes) }
+        }
+    }
+
+    // ── Обновления ──
+    Component {
+        id: updatesC
+        ColumnLayout {
+            readonly property int shown: 8
+            spacing: 6
+
+            Text { text: "Обновления"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize; font.bold: true }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                Text { text: Updates.repoCount + " в репо"; color: Theme.accent; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
+                Text { text: "·"; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
+                Text { text: Updates.aurCount + " в AUR"; color: Theme.layout; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
+                Item { Layout.fillWidth: true }
+                Text { visible: Updates.checking; text: "проверяю…"; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 2 }
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: Theme.border }
+
+            // Первые пакеты: имя + стрелка версий
+            Repeater {
+                model: Updates.repoList.concat(Updates.aurList).slice(0, updatesC.shown)
+                delegate: RowLayout {
+                    required property var modelData
+                    Layout.fillWidth: true
+                    spacing: 8
+                    // "pkg old -> new" → имя | новая версия
+                    readonly property var parts: ("" + modelData).split(/\s+/)
+                    Text {
+                        text: parts[0]
+                        color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1
+                        elide: Text.ElideRight; Layout.fillWidth: true
+                    }
+                    Text {
+                        text: parts[parts.length - 1]
+                        color: Theme.battery; font.family: Theme.font; font.pixelSize: Theme.fontSize - 2
+                    }
+                }
+            }
+
+            Text {
+                visible: Updates.total > updatesC.shown
+                text: "… и ещё " + (Updates.total - updatesC.shown)
+                color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 2
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: Theme.border }
+            Text { text: "клик — обновить · СКМ — перепроверить"; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 3 }
         }
     }
 
