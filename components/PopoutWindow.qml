@@ -4,6 +4,7 @@
 // Клики мимо карточки проходят насквозь (mask), hover на карточке держит её открытой.
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
@@ -34,7 +35,8 @@ PopupWindow {
     // 60 раз/с — получается «прыжок + доравнивание». Поэтому: новый контент
     // грузится в скрытый Loader, его размер известен сразу, и карточка едет
     // к финальным значениям ОДНОЙ ParallelAnimation с кроссфейдом.
-    property bool useA: true
+    property string front: "a"           // какой лоадер сейчас показан
+    property Loader _fadingOut: null
 
     function compFor(n) {
         return n === "volume" ? volumeC
@@ -48,33 +50,60 @@ PopupWindow {
 
     // Фиксированная ширина контента по типу — ColumnLayout сам считает ширину
     // от детей, и она «плавает» с приходом асинхронных данных; задаём явно.
-    readonly property var _cw: ({ volume: 230, battery: 215, media: 250, cpu: 250, gpu: 245, net: 235, updates: 275 })
+    readonly property var _cw: ({ volume: 230, battery: 215, media: 250, cpu: 250, gpu: 245, net: 235, updates: 300 })
 
     function morph() {
         const nm = Popouts.name
-        if (nm === "") return
-        const incoming = useA ? lb : la      // скрытый лоадер
-        const outgoing = useA ? la : lb
+        if (nm === "") { closeTimer.restart(); return }
+        closeTimer.stop()
+
+        const incoming = front === "a" ? lb : la
+        const outgoing = front === "a" ? la : lb
         incoming.sourceComponent = compFor(nm)
         const cw = _cw[nm] ?? 220
         if (incoming.item) incoming.item.width = cw   // фиксируем ширину контента
         const w = cw + card.pad * 2
         const h = (incoming.item ? incoming.item.implicitHeight : 60) + card.pad * 2
         const tx = Math.max(8, Math.min(Popouts.anchorX - w / 2, win.implicitWidth - w - 8))
+        front = front === "a" ? "b" : "a"
 
-        useA = !useA                          // opacity-биндинги лоадеров сделают кроссфейд
-        if (card.opacity < 0.5) {             // свежее открытие — ставим без анимации
-            morphAnim.stop()
+        if (card.opacity < 0.5) {             // свежее открытие — мгновенно, без кроссфейда
+            swapAnim.stop(); morphAnim.stop()
             card.x = tx; card.width = w; card.height = h
-        } else {
-            xA.to = tx; wA.to = w; hA.to = h
-            morphAnim.restart()
+            incoming.opacity = 1
+            outgoing.opacity = 0
+            outgoing.sourceComponent = null   // старый контент не остаётся тенью
+        } else {                              // морф между содержимым — кроссфейд + чистка
+            xA.to = tx; wA.to = w; hA.to = h; morphAnim.restart()
+            swapAnim.stop()
+            fIn.target = incoming; fOut.target = outgoing; win._fadingOut = outgoing
+            swapAnim.restart()
         }
     }
 
     Connections {
         target: Popouts
         function onNameChanged() { win.morph() }
+    }
+
+    // Кроссфейд контента с чисткой ушедшего лоадера в конце
+    SequentialAnimation {
+        id: swapAnim
+        ParallelAnimation {
+            NumberAnimation { id: fIn;  property: "opacity"; to: 1; duration: 150; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects }
+            NumberAnimation { id: fOut; property: "opacity"; to: 0; duration: 150; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects }
+        }
+        ScriptAction { script: { if (win._fadingOut) { win._fadingOut.sourceComponent = null; win._fadingOut = null } } }
+    }
+
+    // При закрытии — обнулить оба лоадера, чтобы контент не всплыл при следующем открытии
+    Timer {
+        id: closeTimer
+        interval: 240
+        onTriggered: if (!Popouts.shown) {
+            la.sourceComponent = null; lb.sourceComponent = null
+            la.opacity = 0; lb.opacity = 0
+        }
     }
 
     ParallelAnimation {
@@ -117,19 +146,10 @@ PopupWindow {
             onHoveredChanged: hovered ? Popouts.holdOpen() : Popouts.hoverLeave()
         }
 
-        // Два лоадера: front виден, back с новым контентом — кроссфейд сменой useA
-        Loader {
-            id: la
-            x: card.pad; y: card.pad
-            opacity: win.useA ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
-        }
-        Loader {
-            id: lb
-            x: card.pad; y: card.pad
-            opacity: win.useA ? 0 : 1
-            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.effects } }
-        }
+        // Два лоадера для кроссфейда. Opacity управляется ТОЛЬКО из morph()/swapAnim —
+        // без биндингов, иначе на свежем открытии оба на миг проявляются и двоят.
+        Loader { id: la; x: card.pad; y: card.pad; opacity: 0 }
+        Loader { id: lb; x: card.pad; y: card.pad; opacity: 0 }
     }
 
     // ── Громкость ──
@@ -374,56 +394,123 @@ PopupWindow {
         }
     }
 
-    // ── Обновления ──
+    // ── Обновления ──  (фильтр/сортировка через C++-хелпер honest-updates-sort)
     Component {
         id: updatesC
         ColumnLayout {
-            readonly property int shown: 8
-            spacing: 6
+            spacing: 8
 
-            Text { text: "Обновления"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize; font.bold: true }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 6
-                Text { text: Updates.repoCount + " в репо"; color: Theme.accent; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
-                Text { text: "·"; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
-                Text { text: Updates.aurCount + " в AUR"; color: Theme.layout; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
-                Item { Layout.fillWidth: true }
-                Text { visible: Updates.checking; text: "проверяю…"; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 2 }
+            // Маленькая кликабельная «таблетка»-переключатель
+            component Chip: Rectangle {
+                property string label
+                property bool on: false
+                property color tint: Theme.accent
+                signal picked()
+                implicitHeight: 21
+                implicitWidth: chipT.implicitWidth + 16
+                radius: 7
+                color: on ? Qt.rgba(tint.r, tint.g, tint.b, 0.18) : Qt.rgba(221/255, 228/255, 236/255, 0.06)
+                border.width: 1
+                border.color: on ? Qt.rgba(tint.r, tint.g, tint.b, 0.5) : "transparent"
+                Behavior on color { ColorAnimation { duration: Theme.fast } }
+                Text {
+                    id: chipT; anchors.centerIn: parent; text: parent.label
+                    color: parent.on ? parent.tint : Theme.muted
+                    font.family: Theme.font; font.pixelSize: Theme.fontSize - 2; font.bold: parent.on
+                }
+                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: parent.picked() }
             }
 
-            Rectangle { Layout.fillWidth: true; height: 1; color: Theme.border }
-
-            // Первые пакеты: имя + стрелка версий
-            Repeater {
-                model: Updates.repoList.concat(Updates.aurList).slice(0, updatesC.shown)
-                delegate: RowLayout {
-                    required property var modelData
-                    Layout.fillWidth: true
-                    spacing: 8
-                    // "pkg old -> new" → имя | новая версия
-                    readonly property var parts: ("" + modelData).split(/\s+/)
-                    Text {
-                        text: parts[0]
-                        color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1
-                        elide: Text.ElideRight; Layout.fillWidth: true
-                    }
-                    Text {
-                        text: parts[parts.length - 1]
-                        color: Theme.battery; font.family: Theme.font; font.pixelSize: Theme.fontSize - 2
+            // Заголовок + перепроверить
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: "Обновления"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize; font.bold: true }
+                Item { Layout.fillWidth: true }
+                Text {
+                    text: Updates.checking ? "проверяю…" : Updates.total + " всего"
+                    color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 2
+                }
+                MouseArea {
+                    implicitWidth: 20; implicitHeight: 20; cursorShape: Qt.PointingHandCursor
+                    onClicked: Updates.refresh()
+                    Icon {
+                        anchors.centerIn: parent; name: "update"
+                        color: parent.containsMouse ? Theme.text : Theme.muted
+                        implicitWidth: 15; implicitHeight: 15
+                        RotationAnimation on rotation {
+                            running: Updates.checking; loops: Animation.Infinite
+                            from: 0; to: 360; duration: 1100
+                        }
                     }
                 }
             }
 
-            Text {
-                visible: Updates.total > updatesC.shown
-                text: "… и ещё " + (Updates.total - updatesC.shown)
-                color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 2
+            // Фильтр по источнику
+            RowLayout {
+                Layout.fillWidth: true; spacing: 6
+                Chip { label: "Все " + Updates.total;      on: Updates.filter === "all";  tint: Theme.text;   onPicked: Updates.filter = "all" }
+                Chip { label: "Репо " + Updates.repoCount;  on: Updates.filter === "repo"; tint: Theme.accent; onPicked: Updates.filter = "repo" }
+                Chip { label: "AUR " + Updates.aurCount;    on: Updates.filter === "aur";  tint: Theme.layout; onPicked: Updates.filter = "aur" }
+                Item { Layout.fillWidth: true }
+            }
+
+            // Сортировка + направление
+            RowLayout {
+                Layout.fillWidth: true; spacing: 6
+                Text { text: "по"; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 2 }
+                Chip { label: "имени";    on: Updates.sort === "name";    onPicked: Updates.sort = "name" }
+                Chip { label: "версии";   on: Updates.sort === "version"; onPicked: Updates.sort = "version" }
+                Chip { label: "источнику"; on: Updates.sort === "source";  onPicked: Updates.sort = "source" }
+                Item { Layout.fillWidth: true }
+                Chip {
+                    label: Updates.order === "asc" ? "↑" : "↓"; on: true; tint: Theme.muted
+                    onPicked: Updates.order = Updates.order === "asc" ? "desc" : "asc"
+                }
             }
 
             Rectangle { Layout.fillWidth: true; height: 1; color: Theme.border }
-            Text { text: "клик — обновить · СКМ — перепроверить"; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 3 }
+
+            // Список пакетов — фикс. высота (карточка не «дышит» при смене фильтра),
+            // колесом прокручивается. Модель — готовый вывод C++-хелпера.
+            ListView {
+                Layout.fillWidth: true
+                implicitHeight: 176
+                clip: true
+                model: Updates.view
+                boundsBehavior: Flickable.StopAtBounds
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+                delegate: Item {
+                    required property var modelData
+                    width: ListView.view.width
+                    implicitHeight: 22
+                    readonly property var parts: ("" + modelData).split(/\s+/)
+                    readonly property bool isAur: parts[parts.length - 1] === "aur"
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.rightMargin: 4
+                        spacing: 8
+                        Rectangle {
+                            implicitWidth: 5; implicitHeight: 5; radius: 2.5
+                            color: parent.parent.isAur ? Theme.layout : Theme.accent
+                        }
+                        Text {
+                            text: parent.parent.parts[0]
+                            color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1
+                            elide: Text.ElideRight; Layout.fillWidth: true
+                        }
+                        Text {
+                            // новая версия = предпоследний токен (последний — источник)
+                            text: parent.parent.parts[parent.parent.parts.length - 2]
+                            color: Theme.battery; font.family: Theme.font; font.pixelSize: Theme.fontSize - 2
+                        }
+                    }
+                }
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: Theme.border }
+            Text { text: "клик по значку — обновить всё · ● репо · ● AUR"; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 3 }
         }
     }
 
