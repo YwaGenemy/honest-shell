@@ -6,6 +6,7 @@ import QtQuick.Controls
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import "root:/"
 import "root:/components"
 
@@ -19,6 +20,21 @@ Pill {
     onClicked: { popup = !popup; if (popup) Clipboard.refresh() }
     // Пока попап открыт — буфер обновляется на лету (новые скриншоты появляются сразу)
     Binding { target: Clipboard; property: "live"; value: root.popup }
+
+    // Esc откуда угодно, не блокируя мышь: вешаем ГЛОБАЛЬНЫЙ бинд Escape только пока
+    // попап открыт (мышь свободна — попап не захватывает клавиатуру). При закрытии
+    // снимаем — Escape в приложениях снова обычный.
+    GlobalShortcut {
+        name: "clipboardEsc"
+        description: "Закрыть буфер обмена"
+        onPressed: root.popup = false
+    }
+    onPopupChanged: {
+        if (popup)
+            Quickshell.execDetached(["hyprctl", "keyword", "bind", ",escape,global,quickshell:clipboardEsc"])
+        else
+            Quickshell.execDetached(["hyprctl", "keyword", "unbind", ",escape"])
+    }
 
     // Подскок масштаба во время вспышки (множится со scale пилюли из Pill)
     property real flashScale: 1.0
@@ -106,10 +122,9 @@ Pill {
 
         WlrLayershell.namespace: "quickshell:clipboard"
         WlrLayershell.layer: WlrLayer.Overlay
-        // Exclusive — вся КЛАВИАТУРА уходит попапу (Esc ловится откуда угодно),
-        // но МЫШЬ по-прежнему проходит в окна под ним (маска ниже). Так Esc
-        // закрывает буфер, не наводясь на него, а кликать другие окна можно.
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+        // None — попап не трогает клавиатуру/мышь глобально; ввод только по маске
+        // (карточка). Esc обрабатывается через временный глобальный бинд (см. выше).
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
         exclusiveZone: 0
 
         // Только top → компоновщик центрирует по горизонтали (под воркспейсами)
@@ -120,13 +135,6 @@ Pill {
 
         // Ввод — только по карточке; остальное прозрачно для окон под попапом
         mask: Region { item: card }
-
-        // Esc закрывает
-        Item {
-            anchors.fill: parent
-            focus: true
-            Keys.onEscapePressed: root.popup = false
-        }
 
         Rectangle {
             id: card
