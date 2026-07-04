@@ -56,26 +56,31 @@ Pill {
         x: 0; y: 0
         width: root.width; height: root.height
         radius: Theme.pillRadius
-        color: "#dfeaff"          // почти белый с голубым — контраст на тёмной панели
         opacity: 0
         z: 10
+        // Живой градиент: голубой → белый → сиреневый (в тон акценту и раскладке)
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop { position: 0.0; color: "#8fb7e8" }   // Theme.accent
+            GradientStop { position: 0.5; color: "#eef4ff" }   // почти белый
+            GradientStop { position: 1.0; color: "#d3b8f5" }   // Theme.layout
+        }
 
         Connections {
             target: Clipboard
             function onFlashed() { flashAnim.restart(); ringAnim.restart() }
         }
 
-        // Двойной пульс заливки + подскок масштаба капсулы
+        // Один мощный всплеск: резкий вход + сильный подскок + плавное затухание
         SequentialAnimation {
             id: flashAnim
-            loops: 2
             ParallelAnimation {
-                NumberAnimation { target: flashOverlay; property: "opacity"; to: 1.0; duration: 55; easing.type: Easing.OutCubic }
-                NumberAnimation { target: root; property: "flashScale"; to: 1.32; duration: 110; easing.type: Easing.OutBack }
+                NumberAnimation { target: flashOverlay; property: "opacity"; to: 1.0; duration: 45; easing.type: Easing.OutCubic }
+                NumberAnimation { target: root; property: "flashScale"; to: 1.42; duration: 150; easing.type: Easing.OutBack }
             }
             ParallelAnimation {
-                NumberAnimation { target: flashOverlay; property: "opacity"; to: 0.0; duration: 300; easing.type: Easing.OutCubic }
-                NumberAnimation { target: root; property: "flashScale"; to: 1.0; duration: 300; easing.type: Easing.OutCubic }
+                NumberAnimation { target: flashOverlay; property: "opacity"; to: 0.0; duration: 560; easing.type: Easing.OutCubic }
+                NumberAnimation { target: root; property: "flashScale"; to: 1.0; duration: 440; easing.type: Easing.OutCubic }
             }
         }
 
