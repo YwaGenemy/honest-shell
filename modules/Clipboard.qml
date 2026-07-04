@@ -224,12 +224,19 @@ Pill {
                         width: GridView.view.cellWidth
                         height: GridView.view.cellHeight
 
+                        // Перетаскивание картинки как файла в другие приложения
+                        Drag.active: imgDrag.active
+                        Drag.dragType: Drag.Automatic
+                        Drag.supportedActions: Qt.CopyAction
+                        Drag.mimeData: ({ "text/uri-list": imgCell.modelData.thumb + "\r\n" })
+                        Drag.imageSource: imgCell.modelData.thumb
+
                         Rectangle {
                             anchors.fill: parent; anchors.margins: 4
                             radius: 10
-                            color: imgMa.containsMouse ? Theme.accentSoft : Qt.rgba(221/255, 228/255, 236/255, 0.05)
+                            color: imgHover.hovered ? Theme.accentSoft : Qt.rgba(221/255, 228/255, 236/255, 0.05)
                             border.width: 1
-                            border.color: imgMa.containsMouse ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.4) : "transparent"
+                            border.color: imgHover.hovered ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.4) : "transparent"
 
                             Image {
                                 anchors.fill: parent; anchors.margins: 6; anchors.bottomMargin: 20
@@ -244,16 +251,15 @@ Pill {
                                 text: imgCell.modelData.dims
                                 color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 3
                             }
-                            MouseArea {
-                                id: imgMa
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                acceptedButtons: Qt.LeftButton | Qt.RightButton
-                                onClicked: (e) => {
-                                    if (e.button === Qt.RightButton) Clipboard.remove(imgCell.modelData.id)
-                                    else { Clipboard.copy(imgCell.modelData.id); root.popup = false }
-                                }
+                        }
+
+                        HoverHandler { id: imgHover; cursorShape: Qt.PointingHandCursor }
+                        DragHandler { id: imgDrag; target: null }   // тащим — не двигая ячейку
+                        TapHandler {
+                            acceptedButtons: Qt.LeftButton | Qt.RightButton
+                            onSingleTapped: (ev, btn) => {
+                                if (btn === Qt.RightButton) Clipboard.remove(imgCell.modelData.id)
+                                else { Clipboard.copy(imgCell.modelData.id); root.popup = false }
                             }
                         }
                     }
@@ -283,7 +289,13 @@ Pill {
                         width: ListView.view.width
                         height: 49
                         radius: 10
-                        color: itemMa.containsMouse ? Theme.accentSoft : Qt.rgba(221/255, 228/255, 236/255, 0.04)
+                        color: txtHover.hovered ? Theme.accentSoft : Qt.rgba(221/255, 228/255, 236/255, 0.04)
+
+                        // Перетаскивание текста в другие приложения
+                        Drag.active: txtDrag.active
+                        Drag.dragType: Drag.Automatic
+                        Drag.supportedActions: Qt.CopyAction
+                        Drag.mimeData: ({ "text/plain": clip.modelData.text })
 
                         Row {
                             anchors.fill: parent
@@ -302,14 +314,13 @@ Pill {
                                 elide: Text.ElideRight; maximumLineCount: 2; wrapMode: Text.Wrap
                             }
                         }
-                        MouseArea {
-                            id: itemMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
+
+                        HoverHandler { id: txtHover; cursorShape: Qt.PointingHandCursor }
+                        DragHandler { id: txtDrag; target: null }
+                        TapHandler {
                             acceptedButtons: Qt.LeftButton | Qt.RightButton
-                            onClicked: (e) => {
-                                if (e.button === Qt.RightButton) Clipboard.remove(clip.modelData.id)
+                            onSingleTapped: (ev, btn) => {
+                                if (btn === Qt.RightButton) Clipboard.remove(clip.modelData.id)
                                 else { Clipboard.copy(clip.modelData.id); root.popup = false }
                             }
                         }
