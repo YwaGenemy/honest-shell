@@ -68,9 +68,10 @@ PanelWindow {
             Tray    { panelWindow: bar }
             Volume  { panelWindow: bar }
             Battery { panelWindow: bar }
-            Clock   { panelWindow: bar }
-            Notes   { panelWindow: bar }
-            Logout  { panelWindow: bar }
+            Clock     { panelWindow: bar }
+            Clipboard { panelWindow: bar }
+            Notes     { panelWindow: bar }
+            Logout    { panelWindow: bar }
         }
     }
 

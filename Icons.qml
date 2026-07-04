@@ -31,6 +31,8 @@ QtObject {
         next: "<path d='M4 3.5 10 8l-6 4.5zM12 3.5v9'/>",
         prev: "<path d='M12 3.5 6 8l6 4.5zM4 3.5v9'/>",
         close: "<path d='M4.5 4.5l7 7M11.5 4.5l-7 7'/>",
-        update: "<path d='M13.5 3.5v3h-3'/><path d='M13 6.2A5.2 5.2 0 1 0 13.4 10'/><path d='M8 5.2v3l2 1.3'/>"
+        update: "<path d='M13.5 3.5v3h-3'/><path d='M13 6.2A5.2 5.2 0 1 0 13.4 10'/><path d='M8 5.2v3l2 1.3'/>",
+        clipboard: "<rect x='3.5' y='3' width='9' height='11.5' rx='1.5'/><rect x='5.8' y='1.6' width='4.4' height='2.6' rx='1'/><path d='M6 7.5h4M6 10h4'/>",
+        trash: "<path d='M3.5 4.5h9M6 4.5V3.2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.3M5 4.5l.6 8a1 1 0 0 0 1 .95h2.8a1 1 0 0 0 1-.95l.6-8'/>"
     })
 }
