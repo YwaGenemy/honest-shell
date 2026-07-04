@@ -208,6 +208,7 @@ Pill {
 
                 // ── Картинки: широкая сетка 4-в-ряд ──
                 GridView {
+                    id: imgGrid
                     width: parent.width
                     visible: root.showImages
                     height: visible ? Math.min(Math.ceil(Math.max(Clipboard.images.length, 1) / 4) * 138, 300) : 0
@@ -216,7 +217,14 @@ Pill {
                     cellHeight: 138
                     model: Clipboard.images
                     boundsBehavior: Flickable.StopAtBounds
+                    // Скролл только колесом — перетаскивание отдаём драгу картинок
+                    interactive: false
                     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                    WheelHandler {
+                        onWheel: (e) => imgGrid.contentY = Math.max(0,
+                            Math.min(Math.max(0, imgGrid.contentHeight - imgGrid.height),
+                                     imgGrid.contentY - e.angleDelta.y))
+                    }
 
                     delegate: Item {
                         id: imgCell
@@ -274,6 +282,7 @@ Pill {
 
                 // ── Текст: список ──
                 ListView {
+                    id: txtList
                     width: parent.width
                     visible: !root.showImages
                     height: visible ? Math.min(Math.max(Clipboard.texts.length, 1) * 54, 300) : 0
@@ -281,7 +290,14 @@ Pill {
                     spacing: 5
                     model: Clipboard.texts
                     boundsBehavior: Flickable.StopAtBounds
+                    // Скролл только колесом — перетаскивание отдаём драгу текста
+                    interactive: false
                     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                    WheelHandler {
+                        onWheel: (e) => txtList.contentY = Math.max(0,
+                            Math.min(Math.max(0, txtList.contentHeight - txtList.height),
+                                     txtList.contentY - e.angleDelta.y))
+                    }
 
                     delegate: Rectangle {
                         id: clip
