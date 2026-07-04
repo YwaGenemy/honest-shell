@@ -1,4 +1,6 @@
 // Окно панели (layer-shell, верх экрана). Создаётся по разу на монитор из shell.qml.
+// Три зоны строятся ДАННЫМИ из BarConfig (Repeater по id-модулей) — состав меняется
+// из конструктора без правки кода.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -21,13 +23,48 @@ PanelWindow {
     implicitHeight: Theme.barHeight
     color: Theme.panelBg          // прозрачный фон — стекло рисует Hyprland
 
-    // Три зоны. Центр держим ровно по центру экрана независимо от ширины боков.
+    // id-модуля → Component. Здесь bar в области видимости, поэтому panelWindow: bar.
+    Component { id: c_layout;     LayoutSwitcher { panelWindow: bar } }
+    Component { id: c_cpu;        CpuUsage       { panelWindow: bar } }
+    Component { id: c_gpu;        GpuTemp        { panelWindow: bar } }
+    Component { id: c_net;        NetSpeed       { panelWindow: bar } }
+    Component { id: c_power;      PowerProfile   { panelWindow: bar } }
+    Component { id: c_clipboard;  Clipboard      { panelWindow: bar } }
+    Component { id: c_workspaces; Workspaces     { panelWindow: bar } }
+    Component { id: c_privacy;    Privacy        { panelWindow: bar } }
+    Component { id: c_updates;    Updates        { panelWindow: bar } }
+    Component { id: c_media;      Media          { panelWindow: bar } }
+    Component { id: c_tray;       Tray           { panelWindow: bar } }
+    Component { id: c_volume;     Volume         { panelWindow: bar } }
+    Component { id: c_battery;    Battery        { panelWindow: bar } }
+    Component { id: c_clock;      Clock          { panelWindow: bar } }
+    Component { id: c_notes;      Notes          { panelWindow: bar } }
+    Component { id: c_logout;     Logout         { panelWindow: bar } }
+    Component { id: c_settings;   Constructor    { panelWindow: bar } }
+
+    function compFor(id) {
+        return ({
+            "layout": c_layout, "cpu": c_cpu, "gpu": c_gpu, "net": c_net, "power": c_power,
+            "clipboard": c_clipboard, "workspaces": c_workspaces, "privacy": c_privacy,
+            "updates": c_updates, "media": c_media, "tray": c_tray, "volume": c_volume,
+            "battery": c_battery, "clock": c_clock, "notes": c_notes, "logout": c_logout,
+            "settings": c_settings
+        })[id] ?? null
+    }
+
+    // Делегат зоны: Loader по id; невидимый модуль (Privacy/Updates/Media при пустоте)
+    // сворачивается в лейауте вместе с Loader.
+    component ZoneItem: Loader {
+        required property var modelData
+        sourceComponent: bar.compFor(modelData)
+        visible: item ? item.visible : true
+    }
+
     Item {
         id: content
         anchors.fill: parent
 
-        // Премиальное появление: ждём, пока модули наполнятся данными (трей, метрики),
-        // и показываем всё одним аккордом — fade + мягкий спуск сверху. Без дёрганий.
+        // Премиальное появление: fade + мягкий спуск сверху одним аккордом.
         opacity: 0
         y: -Theme.barHeight * 0.6
         Timer {
@@ -42,12 +79,7 @@ PanelWindow {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.groupGap
-            LayoutSwitcher { panelWindow: bar }
-            CpuUsage      { panelWindow: bar }
-            GpuTemp       { panelWindow: bar }
-            NetSpeed      { panelWindow: bar }
-            PowerProfile  { panelWindow: bar }
-            Clipboard     { panelWindow: bar }
+            Repeater { model: BarConfig.left; delegate: ZoneItem {} }
         }
 
         // ЦЕНТР
@@ -55,7 +87,7 @@ PanelWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.groupGap
-            Workspaces { panelWindow: bar }
+            Repeater { model: BarConfig.center; delegate: ZoneItem {} }
         }
 
         // ПРАВО
@@ -63,18 +95,10 @@ PanelWindow {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.groupGap
-            Privacy { panelWindow: bar }
-            Updates { panelWindow: bar }
-            Media   { panelWindow: bar }
-            Tray    { panelWindow: bar }
-            Volume  { panelWindow: bar }
-            Battery { panelWindow: bar }
-            Clock     { panelWindow: bar }
-            Notes     { panelWindow: bar }
-            Logout    { panelWindow: bar }
+            Repeater { model: BarConfig.right; delegate: ZoneItem {} }
         }
     }
 
-    // Единый морфящий попап (громкость/батарея/медиа)
+    // Единый морфящий попап (громкость/батарея/медиа/…)
     PopoutWindow { barContent: content }
 }

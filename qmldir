@@ -1,6 +1,7 @@
 # Корневой каталог стал явным модулем (из-за синглтона) — поэтому типы,
 # на которые ссылаются из других файлов, тоже перечисляем здесь.
 singleton Theme Theme.qml
+singleton BarConfig BarConfig.qml
 singleton WsUsage WsUsage.qml
 singleton Icons Icons.qml
 singleton Popouts Popouts.qml

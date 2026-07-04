@@ -33,6 +33,8 @@ QtObject {
         close: "<path d='M4.5 4.5l7 7M11.5 4.5l-7 7'/>",
         update: "<path d='M13.5 3.5v3h-3'/><path d='M13 6.2A5.2 5.2 0 1 0 13.4 10'/><path d='M8 5.2v3l2 1.3'/>",
         clipboard: "<rect x='3.5' y='3' width='9' height='11.5' rx='1.5'/><rect x='5.8' y='1.6' width='4.4' height='2.6' rx='1'/><path d='M6 7.5h4M6 10h4'/>",
-        trash: "<path d='M3.5 4.5h9M6 4.5V3.2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.3M5 4.5l.6 8a1 1 0 0 0 1 .95h2.8a1 1 0 0 0 1-.95l.6-8'/>"
+        trash: "<path d='M3.5 4.5h9M6 4.5V3.2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.3M5 4.5l.6 8a1 1 0 0 0 1 .95h2.8a1 1 0 0 0 1-.95l.6-8'/>",
+        sliders: "<path d='M2.5 5h6.5M11.5 5h2M2.5 11h2M6.5 11h7'/><circle cx='10' cy='5' r='1.7' fill='CUR' stroke='none'/><circle cx='4.5' cy='11' r='1.7' fill='CUR' stroke='none'/>",
+        plus: "<path d='M8 3.5v9M3.5 8h9'/>"
     })
 }
