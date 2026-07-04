@@ -106,7 +106,10 @@ Pill {
 
         WlrLayershell.namespace: "quickshell:clipboard"
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+        // Exclusive — вся КЛАВИАТУРА уходит попапу (Esc ловится откуда угодно),
+        // но МЫШЬ по-прежнему проходит в окна под ним (маска ниже). Так Esc
+        // закрывает буфер, не наводясь на него, а кликать другие окна можно.
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
         exclusiveZone: 0
 
         // Только top → компоновщик центрирует по горизонтали (под воркспейсами)
