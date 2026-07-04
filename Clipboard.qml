@@ -14,6 +14,8 @@ Singleton {
 
     // [{ id, isImage, text, dims, thumb }]
     property var entries: []
+    readonly property var images: entries.filter(e => e.isImage)
+    readonly property var texts:  entries.filter(e => !e.isImage)
 
     function refresh() { listProc.running = true }
 

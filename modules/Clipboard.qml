@@ -11,6 +11,7 @@ import "root:/components"
 Pill {
     id: root
     property bool popup: false
+    property bool showImages: true       // активная вкладка: картинки | текст
     active: popup
     tooltip: "Буфер обмена"
 
@@ -83,15 +84,104 @@ Pill {
                     }
                 }
 
+                // Вкладки: Картинки | Текст
+                Row {
+                    width: parent.width
+                    spacing: 8
+
+                    component Tab: Rectangle {
+                        property string label
+                        property bool on: false
+                        signal picked()
+                        implicitWidth: tabT.implicitWidth + 20
+                        implicitHeight: 24
+                        radius: 8
+                        color: on ? Theme.accentSoft : Qt.rgba(221/255, 228/255, 236/255, 0.05)
+                        border.width: 1
+                        border.color: on ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.5) : "transparent"
+                        Behavior on color { ColorAnimation { duration: Theme.fast } }
+                        Text {
+                            id: tabT; anchors.centerIn: parent; text: parent.label
+                            color: parent.on ? Theme.accent : Theme.muted
+                            font.family: Theme.font; font.pixelSize: Theme.fontSize - 1; font.bold: parent.on
+                        }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: parent.picked() }
+                    }
+
+                    Tab { label: "Картинки " + Clipboard.images.length; on: root.showImages;  onPicked: root.showImages = true }
+                    Tab { label: "Текст " + Clipboard.texts.length;     on: !root.showImages; onPicked: root.showImages = false }
+                }
+
                 Rectangle { width: parent.width; height: 1; color: Theme.border }
 
-                // Список истории
+                // ── Картинки: крупная сетка 2-в-ряд ──
+                GridView {
+                    width: parent.width
+                    visible: root.showImages
+                    height: visible ? Math.min(Math.ceil(Math.max(Clipboard.images.length, 1) / 2) * 130, 470) : 0
+                    clip: true
+                    cellWidth: width / 2
+                    cellHeight: 130
+                    model: Clipboard.images
+                    boundsBehavior: Flickable.StopAtBounds
+                    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+                    delegate: Item {
+                        id: imgCell
+                        required property var modelData
+                        width: GridView.view.cellWidth
+                        height: GridView.view.cellHeight
+
+                        Rectangle {
+                            anchors.fill: parent; anchors.margins: 4
+                            radius: 10
+                            color: imgMa.containsMouse ? Theme.accentSoft : Qt.rgba(221/255, 228/255, 236/255, 0.05)
+                            border.width: 1
+                            border.color: imgMa.containsMouse ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.4) : "transparent"
+
+                            Image {
+                                anchors.fill: parent; anchors.margins: 6; anchors.bottomMargin: 20
+                                source: imgCell.modelData.thumb
+                                fillMode: Image.PreserveAspectFit
+                                asynchronous: true; cache: false
+                                smooth: true
+                            }
+                            Text {
+                                anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.bottomMargin: 5
+                                text: imgCell.modelData.dims
+                                color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 3
+                            }
+                            MouseArea {
+                                id: imgMa
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                onClicked: (e) => {
+                                    if (e.button === Qt.RightButton) Clipboard.remove(imgCell.modelData.id)
+                                    else { Clipboard.copy(imgCell.modelData.id); root.popup = false }
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        anchors.centerIn: parent
+                        visible: Clipboard.images.length === 0
+                        text: "картинок нет"
+                        color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1
+                    }
+                }
+
+                // ── Текст: список ──
                 ListView {
                     width: parent.width
-                    height: Math.min(Math.max(Clipboard.entries.length, 1) * 54, 460)
+                    visible: !root.showImages
+                    height: visible ? Math.min(Math.max(Clipboard.texts.length, 1) * 54, 470) : 0
                     clip: true
                     spacing: 5
-                    model: Clipboard.entries
+                    model: Clipboard.texts
                     boundsBehavior: Flickable.StopAtBounds
                     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
@@ -105,40 +195,21 @@ Pill {
 
                         Row {
                             anchors.fill: parent
-                            anchors.leftMargin: 9; anchors.rightMargin: 8
+                            anchors.leftMargin: 11; anchors.rightMargin: 8
                             spacing: 11
-
-                            // Превью: картинка или иконка типа
-                            Item {
+                            Icon {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 60; height: 40
-                                Image {
-                                    visible: clip.modelData.isImage
-                                    anchors.fill: parent
-                                    source: clip.modelData.thumb
-                                    fillMode: Image.PreserveAspectFit
-                                    asynchronous: true; cache: false
-                                }
-                                Icon {
-                                    visible: !clip.modelData.isImage
-                                    anchors.centerIn: parent; name: "note"
-                                    color: Theme.muted; implicitWidth: 18; implicitHeight: 18
-                                }
+                                name: "note"; color: Theme.muted; implicitWidth: 16; implicitHeight: 16
                             }
-
-                            // Текст / описание картинки
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: parent.width - 60 - 11 - 8
-                                text: clip.modelData.isImage
-                                      ? ("Картинка  " + clip.modelData.dims)
-                                      : clip.modelData.text
+                                width: parent.width - 16 - 11 - 8
+                                text: clip.modelData.text
                                 color: Theme.text
                                 font.family: Theme.font; font.pixelSize: Theme.fontSize
                                 elide: Text.ElideRight; maximumLineCount: 2; wrapMode: Text.Wrap
                             }
                         }
-
                         MouseArea {
                             id: itemMa
                             anchors.fill: parent
@@ -146,21 +217,16 @@ Pill {
                             cursorShape: Qt.PointingHandCursor
                             acceptedButtons: Qt.LeftButton | Qt.RightButton
                             onClicked: (e) => {
-                                if (e.button === Qt.RightButton) {
-                                    Clipboard.remove(clip.modelData.id)
-                                } else {
-                                    Clipboard.copy(clip.modelData.id)
-                                    root.popup = false
-                                }
+                                if (e.button === Qt.RightButton) Clipboard.remove(clip.modelData.id)
+                                else { Clipboard.copy(clip.modelData.id); root.popup = false }
                             }
                         }
                     }
 
-                    // Пусто
                     Text {
                         anchors.centerIn: parent
-                        visible: Clipboard.entries.length === 0
-                        text: "история пуста"
+                        visible: Clipboard.texts.length === 0
+                        text: "текста нет"
                         color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1
                     }
                 }
