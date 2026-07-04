@@ -50,7 +50,7 @@ PopupWindow {
 
     // Фиксированная ширина контента по типу — ColumnLayout сам считает ширину
     // от детей, и она «плавает» с приходом асинхронных данных; задаём явно.
-    readonly property var _cw: ({ volume: 230, battery: 215, media: 250, cpu: 250, gpu: 245, net: 235, updates: 300 })
+    readonly property var _cw: ({ volume: 230, battery: 215, media: 250, cpu: 262, gpu: 250, net: 235, updates: 300 })
 
     function morph() {
         const nm = Popouts.name
@@ -253,17 +253,22 @@ PopupWindow {
         }
     }
 
-    // Строка «метка : значение»
+    // Строка «метка : значение». При нехватке места ужимается МЕТКА (elide),
+    // значение всегда влезает целиком — иначе широкое значение вылезало за край.
     component InfoRow: RowLayout {
         property string k
         property string v
         property color vc: Theme.text
         Layout.fillWidth: true
         spacing: 8
-        Text { text: k; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1 }
-        Item { Layout.fillWidth: true }
-        Text { text: v; color: vc; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1
-               font.bold: true; horizontalAlignment: Text.AlignRight }
+        Text {
+            text: k; color: Theme.muted; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1
+            Layout.fillWidth: true; elide: Text.ElideRight
+        }
+        Text {
+            text: v; color: vc; font.family: Theme.font; font.pixelSize: Theme.fontSize - 1
+            font.bold: true; horizontalAlignment: Text.AlignRight
+        }
     }
 
     // ── CPU ──

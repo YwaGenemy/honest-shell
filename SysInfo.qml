@@ -87,7 +87,7 @@ Singleton {
                 const p = line.split(/\s+/)
                 const v = p[1]
                 switch (p[0]) {
-                case "LOAD": root.loadAvg = p.slice(1, 4).join("  ·  "); break
+                case "LOAD": root.loadAvg = p.slice(1, 4).join(" · "); break
                 case "FREQ": if (v) root.cpuFreq = parseInt(v); break
                 case "CTMP2": if (v) root.cpuTemp = Math.round(parseInt(v) / 1000); break
                 case "GTMP": if (v) root.gpuTemp = Math.round(parseInt(v) / 1000); break
