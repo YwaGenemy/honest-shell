@@ -5,6 +5,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Effects
 import Quickshell
+import Quickshell.Wayland
 import "root:/"
 import "root:/components"
 
@@ -19,18 +20,37 @@ Pill {
 
     Icon { name: "clipboard"; color: root.popup ? Theme.accent : Theme.muted }
 
-    PopupWindow {
+    // Слой-окно вместо PopupWindow: keyboardFocus OnDemand + маска на карточку —
+    // клики мимо карточки проходят в окна под ней (дисплей не блокируется),
+    // клавиатура достаётся попапу, Esc закрывает. Клик снаружи НЕ закрывает.
+    PanelWindow {
         id: pop
         visible: root.popup && root.panelWindow !== undefined
+        screen: root.panelWindow ? root.panelWindow.screen : null
         color: "transparent"
-        grabFocus: true
-        onVisibleChanged: if (!visible) root.popup = false   // клик мимо — закрыть
+
+        WlrLayershell.namespace: "quickshell:clipboard"
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+        exclusiveZone: 0
+
+        anchors { top: true; left: true }
+        margins {
+            left: Math.round(root.mapToItem(null, 0, 0).x) + Theme.barMargin
+            top: Theme.barMarginTop + Theme.barHeight + 4
+        }
         implicitWidth: card.width + 24
         implicitHeight: card.height + 20
-        anchor.item: root
-        anchor.edges: Edges.Bottom
-        anchor.gravity: Edges.Bottom
-        anchor.margins.top: 8
+
+        // Ввод — только по карточке; остальное прозрачно для окон под попапом
+        mask: Region { item: card }
+
+        // Esc закрывает
+        Item {
+            anchors.fill: parent
+            focus: true
+            Keys.onEscapePressed: root.popup = false
+        }
 
         Rectangle {
             id: card
